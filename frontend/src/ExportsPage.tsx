@@ -18,13 +18,13 @@ export default function ExportsPage({
   return (
     <div>
       <section className="panel audit-panel">
-        <p className="eyebrow">ARCHIVOS XLSX AUTÉNTICOS</p>
-        <h2>Exportaciones completas y trazables</h2>
+        <p className="eyebrow">DESCARGAS</p>
+        <h2>Descargar información y resultados</h2>
         <p>
-          Los libros conservan fechas y valores numéricos de Excel, hojas
-          filtrables, parámetros, fuentes, recuentos y huellas. Las descargas de
-          cada módulo utilizan sus filtros aplicados y no se limitan a la página
-          visible.
+          Descargue el histórico y los resultados de sus análisis en Excel, con
+          los periodos, parámetros y fuentes correspondientes. Cada módulo
+          exporta el conjunto seleccionado completo, aunque la tabla muestre
+          solo una parte.
         </p>
         <ExportButton
           path="/exports/history"

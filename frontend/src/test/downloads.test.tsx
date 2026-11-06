@@ -82,7 +82,7 @@ it("no descarga respuestas fallidas ni CSV o archivos sin firma ZIP", async () =
   );
   await expect(
     downloadWorkbook("/exports/history", "bad.xlsx"),
-  ).rejects.toThrow("XLSX auténtico");
+  ).rejects.toThrow("El archivo recibido no es válido");
 });
 
 it("el botón maneja errores, reintento y cuerpo de exportación de simulaciones", async () => {

@@ -70,10 +70,10 @@ it("muestra indicadores, distribuciones, frecuencias y trazabilidad", async () =
     screen.getByRole("columnheader", { name: "Relativa acumulada" }),
   ).toBeInTheDocument();
   await user.click(
-    screen.getByText("Procedimiento y trazabilidad del cálculo"),
+    screen.getByText("Criterios del cálculo"),
   );
   expect(
-    screen.getByText(fixtures.price.dataset_fingerprint),
+    screen.getByText(/El ajuste n − 1 se usa para la varianza muestral/),
   ).toBeInTheDocument();
   expect(screen.getByText(/poblacional · divisor n/)).toBeInTheDocument();
 });
@@ -143,7 +143,7 @@ it("oculta resultados anteriores durante una consulta pendiente", async () => {
   pending = true;
   rerender(<StatisticsPage periodQuery="year=2023" refresh={0} />);
   expect(screen.getByRole("status")).toHaveTextContent(
-    "Calculando estadísticas locales",
+    "Calculando estadísticas",
   );
   expect(screen.queryByText("112,2")).not.toBeInTheDocument();
 });

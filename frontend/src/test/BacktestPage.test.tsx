@@ -216,7 +216,7 @@ it("integra validación y exportaciones en la navegación", async () => {
   await user.click(screen.getByRole("button", { name: "Exportaciones" }));
   expect(
     screen.getByRole("heading", {
-      name: "Exportaciones completas y trazables",
+      name: "Descargar información y resultados",
     }),
   ).toBeInTheDocument();
   await waitFor(() =>

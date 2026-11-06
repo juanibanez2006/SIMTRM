@@ -8,11 +8,11 @@ Proyecto de Simulación, Ingeniería de Sistemas, Universidad Piloto de Colombia
 
 La TRM expresa pesos colombianos por dólar estadounidense, COP/USD. La Superintendencia Financiera calcula y certifica el indicador; el Banco de la República también facilita su consulta y divulgación. SIMTRM ingiere el conjunto oficial `32sa-8pi3` de Datos Abiertos Colombia, con `valor`, `unidad`, `vigenciadesde` y `vigenciahasta`.
 
-No se inventan apertura, cierre, volumen ni movimientos intradía. El valor oficial se asocia a un intervalo de vigencia; una publicación con vigencia futura puede estar descargada sin ser aún el valor vigente hoy.
+Cada observación contiene un valor oficial y su intervalo de vigencia, sin precios intradía ni volumen de negociación. Una publicación futura puede estar disponible sin ser aún el valor vigente hoy.
 
-`records.py` valida fechas, COP, precios positivos y finitos y precisión monetaria; conserva Decimal y el JSON original. La auditoría detecta duplicados, conflictos, solapamientos, huecos, fechas futuras, vigencias extendidas y cambios extremos. Los extremos válidos no se eliminan automáticamente.
+La validación comprueba fechas, unidad COP, precios positivos y finitos y precisión monetaria. La auditoría identifica duplicados, conflictos, solapamientos, huecos, fechas futuras, vigencias extendidas y cambios extremos. Los valores extremos válidos se conservan para el análisis.
 
-`source.py` descarga páginas con orden total estable y contrasta el estado remoto antes y después. `sync.py` valida el conjunto combinado antes de sustituir datos dentro de una transacción, conserva revisiones y registra resultados de sincronización. `automatic.py` programa ese mismo servicio, sin otra implementación de ingesta.
+Antes de incorporar nuevas publicaciones se contrasta la integridad de la información recibida y su coherencia con la serie existente. Si la consulta o la validación falla, se conserva el último histórico válido. Las revisiones de la fuente quedan registradas junto a las versiones anteriores.
 
 ## 2. Población seleccionada y vigencias
 
@@ -82,7 +82,7 @@ Se suponen normalidad, independencia y parámetros constantes. No se presume que
 
 ### Bootstrap histórico
 
-Cada incremento se obtiene por remuestreo con reemplazo de los rendimientos logarítmicos del entrenamiento. Se usa la misma recurrencia exponencial. Conserva la distribución empírica de incrementos, pero el remuestreo independiente pierde dependencia temporal y agrupamiento de volatilidad. No hay bootstrap por bloques implementado.
+Cada incremento se obtiene por remuestreo con reemplazo de los rendimientos logarítmicos del entrenamiento. Se usa la misma recurrencia exponencial. Conserva la distribución empírica de incrementos, pero el remuestreo independiente pierde dependencia temporal y agrupamiento de volatilidad. El remuestreo utilizado es independiente, sin bloques temporales.
 
 Cada método reinicia `numpy.random.default_rng(seed)` con la semilla indicada. Compartir semilla no significa emparejar trayectorias entre métodos. Todas las trayectorias empiezan exactamente en $P_0$, tienen $H+1$ columnas y se verifican precios positivos y finitos. Los desbordamientos se rechazan, sin recortar valores.
 
@@ -120,4 +120,4 @@ Estos procedimientos describen datos y generan escenarios condicionados a supues
 
 Fuentes oficiales: [Datos Abiertos Colombia — SFC](https://www.datos.gov.co/Econom-a-y-Finanzas/Tasa-de-Cambio-Representativa-del-Mercado-TRM/32sa-8pi3) y [Banco de la República — consulta histórica](https://www.banrep.gov.co/es/como-consultar-datos-historicos-tasa-representativa-mercado-trm-nuevo-portal-estadisticas).
 
-Bibliografía orientativa de la asignatura: Mohammad R. Azarang y Eduardo García Dunna, *Simulación y análisis de modelos estocásticos*; Lincoln L. Chao, *Estadística para las Ciencias Administrativas*. No se atribuyen ediciones, páginas ni citas textuales no verificadas. Las fórmulas aquí descritas corresponden al código de SIMTRM.
+Bibliografía de referencia: Mohammad R. Azarang y Eduardo García Dunna, *Simulación y análisis de modelos estocásticos*; Lincoln L. Chao, *Estadística para las Ciencias Administrativas*.

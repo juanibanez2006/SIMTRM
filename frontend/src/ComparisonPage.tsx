@@ -325,7 +325,7 @@ export default function ComparisonPage({
       {loading && !invalid && (
         <div className="loading panel" role="status">
           <span className="spinner" />
-          Comparando periodos locales…
+          Comparando periodos…
         </div>
       )}
       {error && !invalid && (
@@ -495,7 +495,7 @@ export default function ComparisonPage({
                   Diferencia relativa = (B / A − 1) × 100, solo para niveles y
                   desviación de precios con A &gt; 0. «—» indica un cálculo no
                   disponible. La volatilidad usa rendimientos logarítmicos
-                  contiguos, ddof = 1 y no se anualiza. La variación entre
+                  contiguos, con divisor n − 1 y sin anualización. La variación entre
                   extremos coincide con el rendimiento acumulado únicamente
                   cuando la cadena observada es continua.
                 </p>
@@ -599,22 +599,15 @@ export default function ComparisonPage({
             </div>
           )}
           <details className="panel analysis-audit">
-            <summary>Metodología y trazabilidad de la comparación</summary>
-            <p>{data.convention}</p>
+            <summary>Criterios de comparación</summary>
+            <p>{data.convention.replace("ddof=1", "divisor n − 1")}</p>
             <p>
               Fuente: {data.source}
               <br />
               Corte: {shortDate(data.cutoff_date)} · Cálculo:{" "}
               {timestamp(data.calculated_at)}
-              <br />
-              Algoritmo: {data.model_version}
+
             </p>
-            <p>
-              Huella del periodo A: <code>{data.a.dataset_fingerprint}</code>
-              <br />
-              Huella del periodo B: <code>{data.b.dataset_fingerprint}</code>
-            </p>
-            <code>{data.dataset_fingerprint}</code>
           </details>
         </>
       )}

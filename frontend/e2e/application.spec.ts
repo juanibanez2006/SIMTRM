@@ -74,7 +74,7 @@ test("refresca estado local y vigencia al cambiar el día sin perder filtros", a
     String(years[1] ?? years[0]),
   );
   await expect(page.locator(".update-warning")).toContainText(
-    "Se conserva el último histórico local validado",
+    "Se muestran los últimos datos disponibles",
   );
   await expect(page.locator(".js-plotly-plot .main-svg").first()).toBeVisible();
   await expect(page.locator(".latest-card .price")).not.toContainText("—");
@@ -183,7 +183,7 @@ test("navegación por teclado, historial y recuperación del backend", async ({
   );
   await navigate(page, "Histórico de TRM");
   await expect(page.getByRole("alert")).toContainText(
-    "Compruebe que el backend esté iniciado",
+    "No fue posible consultar la información",
   );
   await page.unroute("**/api/v1/trm/series?**");
   await page.getByRole("button", { name: "Reintentar", exact: true }).click();
@@ -279,12 +279,12 @@ test("Montecarlo y bootstrap: semilla, reproducción, gráficos y Excel", async 
     response.url().endsWith(`/simulations/${original.id}/replay`),
   );
   await page
-    .getByRole("button", { name: "Reproducir desde instantánea", exact: true })
+    .getByRole("button", { name: "Reproducir experimento", exact: true })
     .click();
   const replay = (await (await replayed).json()) as Simulation;
   expect(replay.numeric_fingerprint).toBe(original.numeric_fingerprint);
   await expect(page.locator(".simulation-message")).toContainText(
-    "Reproducción verificada",
+    "El experimento se reprodujo con los mismos resultados",
   );
   await page.getByLabel("Semilla aleatoria", { exact: true }).fill("2027");
   const changed = await run();

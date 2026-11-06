@@ -8,6 +8,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
+import { shortDate, timestamp } from "../format";
 import type { DataStatus, History, Latest, Series, TrmRecord } from "../types";
 
 vi.mock("../HistoryChart", () => ({
@@ -136,6 +137,70 @@ beforeEach(() => {
 });
 
 describe("SIMTRM, base funcional", () => {
+  it("distingue la comprobación fallida de la última actualización válida sin exponer su error interno", async () => {
+    const defaultFetch = fetchMock.getMockImplementation() as (
+      input: string, options?: RequestInit,
+    ) => Promise<Response>;
+    const successful = {
+      id: 1, mode: "incremental", status: "success",
+      started_at: "2024-01-08T10:00:00-05:00",
+      finished_at: "2024-01-08T10:01:00-05:00",
+      expected: 5, received: 5, inserted: 5, revised: 0, removed: 0,
+      error: null, audit: {},
+    };
+    const failed = {
+      ...successful, id: 2, status: "failed",
+      started_at: "2024-01-09T10:00:00-05:00",
+      finished_at: "2024-01-09T10:01:00-05:00",
+      error: "Traceback: RuntimeError en app/source.py",
+    };
+    fetchMock.mockImplementation((input: string, options?: RequestInit) =>
+      input.endsWith("/status")
+        ? Promise.resolve(Response.json({
+            ...status, state: "source_error", last_success: successful,
+            last_attempt: failed, checked_at: "2024-01-10T10:00:00-05:00",
+          }))
+        : defaultFetch(input, options),
+    );
+    render(<App />);
+    await screen.findByRole("img");
+    const update = screen.getByLabelText("Estado de actualización");
+    expect(update).toHaveTextContent(timestamp(successful.finished_at));
+    expect(update).toHaveTextContent(timestamp(failed.finished_at));
+    expect(update).not.toHaveTextContent(timestamp("2024-01-10T10:00:00-05:00"));
+    expect(update).toHaveTextContent(`con vigencia hasta el ${shortDate(record.valid_to)}`);
+    expect(screen.getByText("Último dato · desactualizado")).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("button", { name: "Calidad de datos" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("Intente actualizar la información más tarde");
+    expect(document.body).not.toHaveTextContent("Traceback");
+    expect(document.body).not.toHaveTextContent("source.py");
+  });
+
+  it("no anuncia una actualización satisfactoria cuando todavía no hay comprobaciones", async () => {
+    render(<App />);
+    await screen.findByRole("img");
+    expect(screen.getByLabelText("Estado de actualización")).toHaveTextContent("Sin actualización registrada");
+    expect(screen.getByLabelText("Estado de actualización")).toHaveTextContent("Sin comprobaciones registradas");
+  });
+
+  it("informa que conserva los datos al perder la conexión después de una consulta válida", async () => {
+    vi.useFakeTimers();
+    const { unmount } = render(<App />);
+    try {
+      await act(async () => { await vi.advanceTimersByTimeAsync(0); });
+      expect(screen.getByRole("img")).toBeInTheDocument();
+      fetchMock.mockRejectedValue(new TypeError("Failed to fetch"));
+      await act(async () => { await vi.advanceTimersByTimeAsync(60_000); });
+      expect(screen.getByRole("alert")).toHaveTextContent("Se muestran los últimos datos disponibles con las fechas de vigencia indicadas");
+      expect(screen.getByRole("img")).toBeInTheDocument();
+      expect(screen.getByText("Último dato · desactualizado")).toBeInTheDocument();
+    } finally {
+      unmount();
+      vi.useRealTimers();
+    }
+  });
+
   it("incorpora novedades detectadas automáticamente conservando filtros y orden", async () => {
     vi.useFakeTimers();
     const { unmount } = render(<App />);
@@ -235,13 +300,13 @@ describe("SIMTRM, base funcional", () => {
     await screen.findByRole("img");
     await user.click(screen.getByRole("button", { name: "Calidad de datos" }));
     expect(
-      screen.getByText("Una fuente verificable. Una copia trazable."),
+      screen.getByText("Procedencia y cobertura de la información"),
     ).toBeInTheDocument();
     await user.click(
       screen.getByRole("button", { name: "Metodología y fuentes" }),
     );
     expect(
-      screen.getByRole("heading", { name: "Primero, entender el dato." }),
+      screen.getByRole("heading", { name: "Conceptos y criterios del análisis" }),
     ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Histórico de TRM" }));
     expect(
@@ -253,7 +318,7 @@ describe("SIMTRM, base funcional", () => {
     pendingHistory = true;
     render(<App />);
     expect(
-      screen.getByText("Consultando registros locales…"),
+      screen.getByText("Consultando registros…"),
     ).toBeInTheDocument();
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
   });
@@ -335,15 +400,15 @@ describe("SIMTRM, base funcional", () => {
     await screen.findByRole("img");
     await user.click(screen.getByRole("button", { name: "Calidad de datos" }));
     await user.selectOptions(
-      screen.getByLabelText("Tipo de sincronización"),
+      screen.getByLabelText("Alcance de la actualización"),
       "full",
     );
     await user.click(
-      screen.getByRole("button", { name: /Sincronizar fuente oficial/ }),
+      screen.getByRole("button", { name: /Comprobar nuevas publicaciones/ }),
     );
     expect(
       await screen.findByText(
-        "Sincronización verificada. La copia local está lista para consultar.",
+        "Consulta completada. Puede revisar los registros disponibles.",
       ),
     ).toBeInTheDocument();
     expect(
@@ -353,7 +418,7 @@ describe("SIMTRM, base funcional", () => {
     ).toBe(true);
     failSync = true;
     await user.click(
-      screen.getByRole("button", { name: /Sincronizar fuente oficial/ }),
+      screen.getByRole("button", { name: /Comprobar nuevas publicaciones/ }),
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Fuente temporalmente no disponible",

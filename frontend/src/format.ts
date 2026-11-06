@@ -24,4 +24,4 @@ export const timestamp = (value: string | null | undefined) =>
         timeStyle: "short",
         timeZone: "America/Bogota",
       }).format(new Date(value))
-    : "Sin sincronización";
+    : "Sin actualización registrada";

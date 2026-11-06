@@ -71,7 +71,7 @@ export default function BacktestPage({
                       (Number(form.horizon) + 1) *
                       (form.method === "both" ? 2 : 1) >
                     2_000_000
-                  ? "La solicitud supera el límite de 2.000.000 de celdas."
+                  ? "La solicitud supera el límite de 2.000.000 de valores simulados. Reduzca las réplicas o el horizonte."
                   : "";
   async function run() {
     setBusy(true);
@@ -128,7 +128,7 @@ export default function BacktestPage({
       </section>
       {!status.total && (
         <div className="empty-state panel">
-          <h2>No hay histórico local para validar</h2>
+          <h2>No hay registros para evaluar</h2>
           <p>
             Abra Calidad de datos y sincronice la fuente oficial antes de
             ejecutar el contraste retrospectivo.
@@ -562,7 +562,7 @@ export default function BacktestPage({
             </div>
           </section>
           <details className="panel analysis-audit">
-            <summary>Metodología e instantáneas de validación</summary>
+            <summary>Criterios de la evaluación</summary>
             <p>{result.convention}</p>
             <p>
               Identificador de validación: <code>{result.id}</code>
@@ -570,15 +570,8 @@ export default function BacktestPage({
               Experimento de simulación asociado:{" "}
               <code>{result.experiment_id}</code>
               <br />
-              Versión {result.model_version} · SciPy {result.scipy_version} ·{" "}
+              Evaluación realizada:{" "}
               {timestamp(result.created_at)}
-            </p>
-            <p>
-              Huella del entrenamiento{" "}
-              <code>{result.training_fingerprint}</code>
-            </p>
-            <p>
-              Huella de evaluación <code>{result.evaluation_fingerprint}</code>
             </p>
           </details>
         </>

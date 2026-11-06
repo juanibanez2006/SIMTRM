@@ -2,9 +2,43 @@
 
 **Sistema de Análisis y Simulación de la Tasa Representativa del Mercado**
 
-Aplicación académica para consultar la TRM oficial USD/COP de Colombia, explorar su histórico, analizar y comparar periodos, ejecutar escenarios probabilísticos y descargar resultados completos en Excel. La TRM tiene **periodos de vigencia**: no es una cotización bursátil intradía.
+SIMTRM es una aplicación académica para consultar la TRM de Colombia, estudiar su comportamiento histórico y explorar escenarios probabilísticos del dólar frente al peso colombiano. Está dirigida a estudiantes, docentes y personas interesadas en el análisis económico y estadístico de la tasa de cambio.
 
-## Contexto y autores
+Reúne la consulta de información oficial, el análisis de periodos, la comparación de resultados y la simulación en un mismo entorno. Su propósito es facilitar el estudio de la TRM mediante procedimientos verificables y experimentos reproducibles.
+
+La TRM se expresa en **pesos colombianos por dólar estadounidense (COP/USD)** y tiene periodos de vigencia. No es una cotización bursátil intradía. Los escenarios simulados no constituyen predicciones garantizadas ni recomendaciones de inversión.
+
+## Funcionalidades
+
+| Módulo | Uso |
+| --- | --- |
+| Vista general e histórico | Consultar la última TRM disponible, sus vigencias y variaciones; explorar periodos mediante filtros, gráficos y tablas. |
+| Análisis estadístico | Estudiar niveles y rendimientos, medidas descriptivas, distribuciones, percentiles y volatilidad móvil. |
+| Comparación de periodos | Contrastar intervalos mediante indicadores y series en COP/USD o normalizadas en base 100. |
+| Simulador | Generar escenarios Montecarlo y bootstrap, examinar trayectorias, percentiles y probabilidades, y recuperar experimentos guardados. |
+| Validación retrospectiva | Comparar escenarios con observaciones posteriores a un corte histórico y evaluar errores, cobertura y diagnósticos estadísticos. |
+| Exportaciones | Descargar en Excel los datos y resultados completos del periodo o experimento seleccionado. |
+| Calidad de datos y metodología | Consultar procedencia, cobertura, vigencias, estado de actualización, fórmulas y supuestos del análisis. |
+
+Los gráficos ofrecen navegación temporal y herramientas de exploración para distintos dispositivos. El periodo seleccionado puede compartirse entre los módulos de análisis; el zoom del gráfico solo modifica la vista, sin cambiar los datos utilizados para cálculos, simulaciones o exportaciones.
+
+## Uso de la aplicación
+
+1. Consulte la TRM y su fecha de vigencia en **Vista general**. En **Calidad de datos** puede comprobar la cobertura y solicitar nuevas publicaciones.
+2. Seleccione un periodo en **Histórico de TRM** para examinar registros y variaciones. **Análisis estadístico** conserva esos filtros.
+3. Compare intervalos o utilice el periodo seleccionado como entrenamiento del **Simulador**. Revise el corte, horizonte, réplicas y semilla antes de ejecutar el experimento.
+4. Consulte los supuestos junto a los resultados y contraste escenarios en **Validación retrospectiva**.
+5. Descargue los resultados en Excel. Guarde el identificador del experimento para recuperarlo posteriormente.
+
+## Información oficial y actualización
+
+La fuente primaria es el [conjunto de TRM de la Superintendencia Financiera de Colombia en Datos Abiertos Colombia](https://www.datos.gov.co/Econom-a-y-Finanzas/Tasa-de-Cambio-Representativa-del-Mercado-TRM/32sa-8pi3). El [Banco de la República](https://www.banrep.gov.co/es/como-consultar-datos-historicos-tasa-representativa-mercado-trm-nuevo-portal-estadisticas) ofrece una referencia complementaria para consulta histórica.
+
+SIMTRM comprueba nuevas publicaciones automáticamente al iniciar y, cuando corresponde, a intervalos configurables de seis horas mientras el servicio permanece en ejecución. También permite solicitar una actualización manual. Si la fuente no responde o la información recibida no supera la validación, conserva el último histórico válido.
+
+La aplicación distingue la vigencia del valor oficial de la fecha de la última comprobación satisfactoria. Las fechas se interpretan en **America/Bogota**. Una publicación futura no se presenta como vigente hoy; una vigencia de varios días no se convierte en observaciones independientes.
+
+## Contexto académico
 
 | Información | Detalle |
 | --- | --- |
@@ -13,67 +47,27 @@ Aplicación académica para consultar la TRM oficial USD/COP de Colombia, explor
 | Asignatura | Simulación |
 | Docente | Carlos David Moncada Beltrán |
 | Periodo | Segundo semestre de 2026 |
-| Autores | Wilfer Duvan Ruiz Romero; Maria Jose Castro Ortiz; Juan Camilo Ibañez Gaitan |
 
-Los tres integrantes son autores del proyecto. Los commits identifican a quien realmente realiza cada cambio; no se asigna autoría Git artificialmente a los demás integrantes.
+**Autores**
 
-**Objetivo general:** desarrollar una herramienta reproducible de análisis y simulación de la TRM con información oficial y procedimientos matemáticos verificables.
+- Wilfer Duvan Ruiz Romero.
+- Maria Jose Castro Ortiz.
+- Juan Camilo Ibañez Gaitan.
 
-**Objetivos específicos:** recuperar y validar el histórico completo; analizar precios y rendimientos; comparar periodos con convenciones explícitas; generar escenarios Montecarlo y bootstrap; contrastarlos retrospectivamente; exportar muestras, resultados y metadatos; facilitar la explicación académica de sus supuestos y limitaciones.
+El objetivo general es proporcionar una herramienta reproducible de análisis y simulación de la TRM con información oficial. Sus objetivos específicos comprenden la validación del histórico, el estudio de precios y rendimientos, la comparación de periodos, la generación y evaluación de escenarios y la comunicación de resultados con sus fundamentos estadísticos.
 
-## Funcionalidades
+## Instalación y ejecución
 
-- Histórico completo con año, mes, fechas, orden y paginación. Accesos de 1, 3 y 6 meses, 1 y 5 años, o todo el histórico.
-- Gráficos temporales: arrastre horizontal, zoom con Ctrl/⌘ + rueda o pinza, consulta mediante clic/toque y controles accesibles. El desplazamiento vertical normal permanece disponible.
-- Selección de observaciones históricas con precio, vigencia, anterior contiguo y variaciones. Los extremos de una vigencia extendida corresponden al mismo registro.
-- Estadística descriptiva, rendimientos, frecuencias, distribución empírica, percentiles, caja y volatilidad móvil.
-- Comparación independiente de intervalos en COP/USD o base 100, alineados por observación o días transcurridos.
-- Transferencia explícita del periodo histórico al periodo A o al entrenamiento del simulador; Histórico y Estadística comparten filtros.
-- Montecarlo paramétrico y bootstrap histórico, semillas configurables, trayectorias, distribuciones terminales, percentiles y probabilidades.
-- Experimentos guardados con instantánea de entrenamiento y matrices completas; recuperación y reproducción verificadas mediante huellas.
-- Validación retrospectiva frente a persistencia, MAE, RMSE, MAPE, cobertura y diagnósticos del generador y del entrenamiento.
-- Excel histórico, estadístico, comparativo, de simulación y retrospectivo. Los archivos no se limitan a la página o a las trayectorias visibles.
-- Sincronización incremental automática al iniciar si corresponde y después de un intervalo configurable de seis horas; también sincronización manual forzada.
-- Consulta y análisis con SQLite local si la fuente externa falla, conservando el último conjunto validado.
+### Requisitos
 
-**El zoom es exclusivamente visual:** no modifica filtros, muestras estadísticas, entrenamiento ni exportaciones. Para cambiar el periodo de cálculo se utilizan los filtros o accesos rápidos.
+- Git.
+- Python **3.13**.
+- Node.js **24 LTS** y npm.
+- Conexión a internet para instalar dependencias y obtener nuevas publicaciones oficiales.
 
-## Tecnologías y arquitectura
+### Preparación en Windows
 
-| Capa | Tecnologías y responsabilidades |
-| --- | --- |
-| Interfaz | React 19, TypeScript, Vite 7 y Tailwind CSS 4; filtros, navegación y estados de interacción |
-| Visualización | Plotly, paquete básico cargado de forma diferida; adaptación táctil para gráficos temporales |
-| API | Python 3.13, FastAPI y Pydantic; contratos versionados bajo `/api/v1` |
-| Datos | Cliente httpx de Socrata, normalización Decimal, auditoría y publicación transaccional en SQLite/WAL |
-| Cálculo | NumPy y SciPy; estadística, simulación, comparación y validación |
-| Exportación | openpyxl; libros XLSX con valores, formatos, fuentes y huellas |
-| Calidad | pytest, Vitest, Testing Library, Playwright, axe, Ruff, ESLint y TypeScript |
-
-El navegador consulta exclusivamente la API local. Solo el servicio de sincronización consulta Datos Abiertos Colombia. Los cálculos no dependen de volver a descargar el histórico.
-
-```text
-backend/
-  app/                  API, fuente, sincronización, estadística y modelos
-  tests/                Pruebas aisladas y servidor de pruebas integrales
-  manage.py             Sincronización y consulta de estado por consola
-  requirements.txt      Rangos de dependencias
-  requirements.lock     Versiones fijadas para reconstrucción
-  .env.example          Configuración de ejemplo sin credenciales
-frontend/
-  src/                  Interfaz, gráficos y pruebas unitarias
-  e2e/                  Recorridos de navegador y gestos
-  playwright.config.ts  Chrome y Edge en Windows
-scripts/                Inicio del frontend y backend
-docs/METODOLOGIA.md      Fundamentos relacionados con el código
-.github/workflows/      Verificación automática del repositorio
-```
-
-## Instalación en Windows
-
-Se requieren Git, Python **3.13**, Node.js **24 LTS** y npm. Las pruebas integrales locales también requieren Chrome y Microsoft Edge instalados.
-
-Desde PowerShell en Visual Studio Code:
+Desde PowerShell, en una terminal de Visual Studio Code:
 
 ```powershell
 git clone https://github.com/juanibanez2006/SIMTRM.git
@@ -84,122 +78,100 @@ npm.cmd --prefix frontend ci
 if (-not (Test-Path backend\.env)) { Copy-Item backend\.env.example backend\.env }
 ```
 
-El repositorio es privado: para clonarlo se necesita acceso autorizado por su propietario. No es necesario activar el entorno virtual cuando se invoca directamente su ejecutable.
-
 ### Configuración
 
-Editar `backend/.env` si se necesitan valores distintos de los predeterminados:
+Los valores de ejemplo están en [`backend/.env.example`](backend/.env.example). Para personalizar la instalación, edite `backend/.env`:
 
 | Variable | Predeterminado | Uso |
 | --- | --- | --- |
-| `DATABASE_PATH` | `data/simtrm.sqlite3` | Ruta relativa a `backend` o ruta absoluta |
-| `AUTO_SYNC_ENABLED` | `true` | Habilita comprobación automática |
-| `AUTO_SYNC_INTERVAL_HOURS` | `6` | Intervalo y espera tras intentos fallidos; configurable entre un minuto y siete días |
-| `SYNC_LOOKBACK_DAYS` | `60` | Ventana de revisión anterior a la última fecha almacenada |
-| `SOURCE_TIMEOUT_SECONDS` | `30` | Tiempo de espera de operaciones HTTP |
-| `SOURCE_PAGE_SIZE` | `1000` | Tamaño de página; no limita el total histórico |
-| `SOURCE_RETRIES` | `3` | Reintentos adicionales por fallo transitorio |
-| `SOURCE_BACKOFF_SECONDS` | `1` | Base de la espera exponencial |
-| `SOCRATA_APP_TOKEN` | vacío | Token opcional exclusivo del backend |
-| `ADMIN_TOKEN` | vacío | Si se configura, exige `X-Admin-Token` para sincronización manual |
-| `CORS_ORIGINS` | Orígenes locales del puerto 5173 | Lista JSON de orígenes permitidos |
+| `DATABASE_PATH` | `data/simtrm.sqlite3` | Ubicación de la base de datos, relativa a `backend` o absoluta. |
+| `AUTO_SYNC_ENABLED` | `true` | Habilita la actualización automática. |
+| `AUTO_SYNC_INTERVAL_HOURS` | `6` | Intervalo entre comprobaciones; también limita nuevos intentos tras un fallo. |
+| `SYNC_LOOKBACK_DAYS` | `60` | Periodo retrospectivo revisado durante la actualización incremental. |
+| `SOURCE_TIMEOUT_SECONDS` | `30` | Tiempo de espera de las consultas a la fuente. |
+| `SOCRATA_APP_TOKEN` | Vacío | Credencial opcional de Socrata. |
+| `ADMIN_TOKEN` | Vacío | Clave opcional para autorizar actualizaciones manuales. |
+| `CORS_ORIGINS` | Orígenes locales del puerto 5173 | Orígenes permitidos para la interfaz. |
 
-No publicar `.env`, tokens ni credenciales. No introducir secretos en variables `VITE_*`, que pueden quedar expuestas en el navegador.
+El archivo de ejemplo incluye las opciones adicionales de paginación y reintentos. Mantenga las credenciales únicamente en `.env`; no las publique ni utilice variables `VITE_*` para secretos.
 
-### Histórico oficial y ejecución
+### Obtener el histórico oficial
 
-La base de ejecución **no se versiona**. Se reconstruye desde la fuente oficial; no existe un número de registros codificado como límite.
-
-Para una carga explícita antes de iniciar los servidores:
+La base de datos de ejecución no se incluye en el repositorio. Para descargar el histórico antes de iniciar:
 
 ```powershell
 .\.venv\Scripts\python.exe backend\manage.py sync --mode full
 .\.venv\Scripts\python.exe backend\manage.py status
 ```
 
-Abrir dos terminales en la raíz del proyecto:
+También puede iniciar con una base vacía y esperar la carga automática. Hasta completar una descarga válida, la aplicación informa que no hay registros disponibles.
+
+### Iniciar la aplicación
+
+Abra dos terminales en la raíz del proyecto:
 
 ```powershell
-# Terminal 1
+# Terminal 1: API y actualización de información
 powershell -ExecutionPolicy Bypass -File .\scripts\start-backend.ps1
 ```
 
 ```powershell
-# Terminal 2
+# Terminal 2: interfaz
 powershell -ExecutionPolicy Bypass -File .\scripts\start-frontend.ps1
 ```
 
-Aplicación: <http://127.0.0.1:5173/>. Documentación OpenAPI: <http://127.0.0.1:8000/docs>.
+Acceda a **<http://127.0.0.1:5173/>**. La referencia de la API está disponible en <http://127.0.0.1:8000/docs>. Mantenga ambas terminales abiertas durante el uso.
 
-También es posible iniciar con una base vacía: la tarea automática solicitará el histórico en segundo plano. Hasta completar una descarga válida se muestra ausencia de datos. La interfaz necesita el backend local activo; no es una aplicación autónoma del navegador.
+## Tecnologías y organización
 
-## Fuente, vigencias y actualización
+| Componente | Tecnologías y responsabilidades |
+| --- | --- |
+| Interfaz | React 19, TypeScript, Vite 7 y Tailwind CSS 4. |
+| Visualización | Plotly, con carga diferida del paquete básico. |
+| API | Python 3.13, FastAPI y Pydantic; rutas bajo `/api/v1`. |
+| Persistencia | SQLite, validación de registros, transacciones y conservación de revisiones. |
+| Análisis | NumPy y SciPy para estadística, simulación y validación. |
+| Exportaciones | openpyxl para libros Excel. |
 
-Fuente primaria: [Superintendencia Financiera en Datos Abiertos Colombia](https://www.datos.gov.co/Econom-a-y-Finanzas/Tasa-de-Cambio-Representativa-del-Mercado-TRM/32sa-8pi3). Endpoint: <https://www.datos.gov.co/resource/32sa-8pi3.json>.
+La interfaz consulta la API de SIMTRM; la sincronización obtiene la información de Datos Abiertos Colombia. Los análisis utilizan el histórico almacenado y no requieren descargarlo nuevamente en cada consulta. La actualización automática y la manual comparten el mismo procedimiento y sus controles de concurrencia.
 
-La descarga utiliza paginación explícita y orden estable; valida conteos, cobertura, identificadores, valores y vigencias antes de publicar. Guarda los originales y sus revisiones. Una vigencia de varios días no se considera un hueco ni se convierte en rendimientos independientes.
-
-`automatic.py` utiliza el mismo `synchronize()` que la actualización manual. Una instancia obtiene el bloqueo de programación por base; el bloqueo de sincronización impide publicaciones simultáneas entre procesos. La elegibilidad se comprueba nuevamente bajo ese bloqueo. Las instancias deben compartir **el mismo archivo SQLite en un equipo con bloqueos de archivo fiables** para coordinarse; no es coordinación distribuida entre bases independientes.
-
-Al arrancar se comprueba la antigüedad de la última sincronización. Los intentos fallidos también dejan una espera persistente para evitar consultas repetidas por reinicios. La tarea revisa localmente la elegibilidad cada minuto y consulta la fuente cuando vence el intervalo. No se necesita mantener una pestaña abierta. La sincronización manual omite el intervalo, pero respeta el bloqueo.
-
-Un fallo HTTP, de red o de validación conserva los datos y la última sincronización satisfactoria. El cierre ordenado señala cancelación, interrumpe las esperas y espera la operación HTTP en curso conforme a sus tiempos de espera. Tras una interrupción, el bloqueo del sistema operativo se libera y el siguiente coordinador regulariza el intento inconcluso.
-
-El frontend consulta el estado local cada minuto visible y al volver a la pestaña, con agrupación de eventos. Recalcula vigencia en America/Bogota. Distingue última publicación, vigencia actual, comprobación de fuente, sincronización satisfactoria y consulta local; **ninguna comprobación anterior acredita disponibilidad en tiempo real**.
-
-Las correcciones anteriores a la ventana incremental requieren una sincronización completa. El Banco de la República se enlaza como fuente complementaria; no se ha implementado una importación automática de su serie ni se supone identidad exacta entre conjuntos.
-
-## Cálculos, simulaciones y Excel
-
-Las fórmulas, muestras y limitaciones se detallan en [Metodología](docs/METODOLOGIA.md) y dentro de los módulos de la aplicación. No se interpolan huecos, no se eliminan precios iguales y no se anualiza automáticamente la volatilidad.
-
-Las simulaciones conservan todas las réplicas, aunque el gráfico muestre un subconjunto. El máximo es de 2.000.000 de celdas entre métodos; hasta 365 pasos y 50.000 réplicas, sujetos al límite conjunto. El precio inicial automático procede del entrenamiento, no de información posterior.
-
-Los experimentos guardan solicitud, instantánea, huella, versión de modelo, NumPy, Python, arquitectura, semilla y matrices. Para reproducción exacta se requiere el mismo entorno numérico; cambiar solo la semilla o reconstruir con una fuente revisada no reproduce el experimento original. Los experimentos locales no se incluyen en Git.
-
-Las exportaciones contienen fechas y números auténticos de Excel, filtros, conteos y procedencia. Los textos externos se escriben literalmente para evitar fórmulas inyectadas. Hay división de hojas al alcanzar los límites de Excel. Son libros de resultados calculados por el backend, no modelos recalculables en Excel.
-
-## Pruebas y mantenimiento
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest backend\tests -q
-.\.venv\Scripts\python.exe -m ruff check backend
-.\.venv\Scripts\python.exe -m pip check
-npm.cmd --prefix frontend test
-npm.cmd --prefix frontend run lint
-npm.cmd --prefix frontend run build
-npm.cmd --prefix frontend audit
+```text
+backend/app/             API, persistencia, fuentes, análisis y modelos
+backend/tests/           Pruebas del análisis y los servicios
+backend/manage.py        Sincronización y consulta por consola
+backend/requirements.lock Dependencias Python fijadas
+frontend/src/            Interfaz, gráficos y pruebas unitarias
+frontend/e2e/            Pruebas de navegación
+scripts/                Comandos de inicio para Windows
+docs/METODOLOGIA.md      Fundamentos matemáticos y estadísticos
+.github/workflows/      Integración continua
 ```
 
-Para los recorridos integrales:
+## Metodología, reproducibilidad y límites
 
-```powershell
-cd frontend
-npm.cmd run test:e2e
-```
+La [documentación metodológica](docs/METODOLOGIA.md) desarrolla las fórmulas, muestras, supuestos y criterios de interpretación. También están disponibles explicaciones contextuales dentro de la aplicación.
 
-Playwright utiliza puertos 8001 y 5174 y una copia aislada del histórico real local. La actualización externa automática se desactiva en ese servidor de pruebas. No modifica la base principal. Los casos sintéticos están limitados a pruebas y claramente separados de los datos oficiales.
+Los experimentos conservan datos de entrenamiento, parámetros, semilla y resultados completos. La reproducción exacta requiere el mismo método y entorno numérico. Las exportaciones incluyen las muestras y resultados del análisis, aunque los gráficos representen solo una parte de las trayectorias.
 
-El flujo de GitHub Actions ejecuta pruebas unitarias backend/frontend, Ruff, ESLint, comprobación de tipos y compilación con dependencias fijadas, sin tokens oficiales ni una base real. Los recorridos E2E con histórico local se ejecutan aparte. El flujo valida código; **no despliega públicamente la aplicación**.
+- Los modelos suponen independencia y estabilidad de parámetros o distribuciones; pueden no representar cambios estructurales del mercado.
+- La volatilidad se expresa por transición de vigencia, sin anualización automática.
+- El simulador admite hasta 365 pasos y 50.000 réplicas, sujetos a un límite conjunto de 2.000.000 de valores entre métodos.
+- La evaluación retrospectiva analiza una ventana por ejecución. El corte evita calibrar con vigencias posteriores, pero la fuente actual puede contener revisiones históricas publicadas después de ese corte.
+- La actualización incremental puede omitir correcciones anteriores a su ventana de revisión. La opción de histórico completo permite contrastarlas nuevamente.
+- La instalación está orientada al uso local. Una instalación compartida requiere configurar acceso, almacenamiento y límites de recursos. Los bloqueos de sincronización coordinan instancias que comparten la misma base en un equipo con bloqueos de archivo fiables.
 
-Las prácticas de calidad consideran las nueve características de ISO/IEC 25010:2023: adecuación funcional, eficiencia, compatibilidad, capacidad de interacción, fiabilidad, seguridad, mantenibilidad, flexibilidad y seguridad operacional. Esto no implica certificación ISO.
+Los datos y experimentos de ejecución permanecen fuera de Git. Antes de migrar o reinstalar, conserve una copia consistente de la base SQLite y las versiones del entorno necesarias para reproducir sus experimentos. El repositorio publica el código; no incluye un alojamiento público de la aplicación.
 
-## Limitaciones y colaboración
+## Desarrollo y colaboración
 
-- Los escenarios no son predicciones garantizadas ni recomendaciones de inversión. Los supuestos de independencia y estabilidad pueden no representar el mercado.
-- La validación retrospectiva disponible evalúa una ventana por ejecución; no demuestra capacidad predictiva general.
-- El corte controla las fechas de vigencia, pero no reconstruye qué versión de la serie estaba publicada en una fecha pasada: la fuente actual puede contener revisiones históricas posteriores a ese corte.
-- La pinza y el arrastre se prueban mediante emulación Chromium; requieren comprobación adicional en dispositivos físicos y Safari/iOS.
-- Plotly básico ya se carga de forma diferida. Su paquete sigue siendo grande; el aviso de compilación no se oculta. No se incorporó otra biblioteca sin beneficio demostrado.
-- SQLite y los bloqueos actuales están orientados a una instalación local. Publicar la aplicación en un servidor exige revisar autenticación de todas las operaciones, recursos, almacenamiento y configuración.
-- No hay copias de seguridad externas programadas. Antes de migrar o reinstalar, conservar mediante copia SQLite consistente la base local, sus experimentos y el entorno numérico necesario. Git respalda código, no esos datos de ejecución.
+Las comprobaciones de desarrollo se ejecutan con `.\.venv\Scripts\python.exe -m pytest backend/tests -q`, `.\.venv\Scripts\python.exe -m ruff check backend`, `npm.cmd --prefix frontend test`, `npm.cmd --prefix frontend run lint` y `npm.cmd --prefix frontend run build`, utilizando el entorno instalado. El [flujo de integración continua](.github/workflows/quality.yml) ejecuta las verificaciones principales en GitHub Actions.
 
-Para colaborar: crear una rama, ejecutar las verificaciones y abrir una solicitud de cambios. El propietario autoriza el acceso al repositorio privado; esta configuración no concede permisos a terceros.
+Las pruebas de navegador se ejecutan con `npm.cmd --prefix frontend run test:e2e`; requieren Chrome, Edge y un histórico local descargado. Para proponer cambios, cree una rama y una solicitud de cambios con una descripción de su alcance.
 
 ## Referencias
 
-- [Banco de la República: consulta de TRM histórica y metodología de acceso](https://www.banrep.gov.co/es/como-consultar-datos-historicos-tasa-representativa-mercado-trm-nuevo-portal-estadisticas).
-- [Portal de Estadísticas Económicas del Banco de la República](https://suameca.banrep.gov.co/estadisticas-economicas/).
-- [Conjunto oficial SFC, Datos Abiertos Colombia](https://www.datos.gov.co/Econom-a-y-Finanzas/Tasa-de-Cambio-Representativa-del-Mercado-TRM/32sa-8pi3).
-- Mohammad R. Azarang y Eduardo García Dunna, *Simulación y análisis de modelos estocásticos*. Referencia académica orientativa; no se atribuyen páginas ni citas textuales no verificadas.
-- Lincoln L. Chao, *Estadística para las Ciencias Administrativas*. Referencia académica orientativa; no se especifica una edición no comprobada.
+- [Superintendencia Financiera de Colombia — TRM en Datos Abiertos Colombia](https://www.datos.gov.co/Econom-a-y-Finanzas/Tasa-de-Cambio-Representativa-del-Mercado-TRM/32sa-8pi3).
+- [Banco de la República — consulta de datos históricos de la TRM](https://www.banrep.gov.co/es/como-consultar-datos-historicos-tasa-representativa-mercado-trm-nuevo-portal-estadisticas).
+- [Banco de la República — Portal de Estadísticas Económicas](https://suameca.banrep.gov.co/estadisticas-economicas/).
+- Mohammad R. Azarang y Eduardo García Dunna, *Simulación y análisis de modelos estocásticos*.
+- Lincoln L. Chao, *Estadística para las Ciencias Administrativas*.

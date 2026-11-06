@@ -208,11 +208,11 @@ export default function App() {
         body: JSON.stringify({ mode: syncMode }),
       });
       setSyncMessage(
-        "Sincronización verificada. La copia local está lista para consultar.",
+        "Consulta completada. Puede revisar los registros disponibles.",
       );
     } catch (err) {
       setSyncError(
-        err instanceof Error ? err.message : "No se pudo sincronizar",
+        err instanceof Error ? err.message : "No fue posible actualizar la información",
       );
     } finally {
       setSyncing(false);
@@ -307,7 +307,7 @@ export default function App() {
           </span>
           <span className="local-badge">
             <i />
-            Consulta sobre copia local
+            TRM · USD/COP
           </span>
         </header>
         <main id="main" tabIndex={-1}>
@@ -330,7 +330,11 @@ export default function App() {
           </div>
           {metadataError && (
             <ErrorBox
-              message={metadataError}
+              message={
+                status?.total
+                  ? `${metadataError} Se muestran los últimos datos disponibles con las fechas de vigencia indicadas.`
+                  : metadataError
+              }
               retry={() => setRefresh((current) => current + 1)}
             />
           )}
@@ -342,7 +346,7 @@ export default function App() {
             >
               {status.last && (
                 <p>
-                  <strong>Última vigencia publicada en la copia local:</strong>{" "}
+                  <strong>Último registro publicado:</strong>{" "}
                   {money(status.last.value)} COP/USD ·{" "}
                   {shortDate(status.last.valid_from)}
                   {status.last.extended
@@ -352,31 +356,25 @@ export default function App() {
                 </p>
               )}
               <p>
-                <strong>Última sincronización satisfactoria:</strong>{" "}
+                <strong>Última actualización comprobada:</strong>{" "}
                 {timestamp(status.last_success?.finished_at)}
               </p>
               <p>
                 <strong>Última comprobación de la fuente:</strong>{" "}
                 {status.last_attempt
                   ? `${timestamp(status.last_attempt.finished_at || status.last_attempt.started_at)} · ${{ success: "Validada", failed: "No completada", running: "En curso" }[status.last_attempt.status] || status.last_attempt.status}`
-                  : "Sin intentos"}
+                  : "Sin comprobaciones registradas"}
               </p>
               <p>
-                {status.auto_sync_enabled
-                  ? `Comprobación automática cada ${status.auto_sync_interval_hours ?? 6} horas mientras el backend esté activo.`
-                  : "Comprobación automática desactivada."}{" "}
-                TRM oficial por periodos de vigencia; la última comprobación no
-                acredita disponibilidad en tiempo real.
+                La TRM corresponde a un periodo de vigencia. La fecha de la
+                comprobación indica cuándo se consultó la fuente oficial.
               </p>
-              {status.checked_at && (
-                <p>Estado local consultado: {timestamp(status.checked_at)}.</p>
-              )}
               {sourceFailure && (
                 <p className="update-warning" role="status">
-                  El último intento de actualización no pudo completarse.{" "}
-                  {status.total
-                    ? "Se conserva el último histórico local validado."
-                    : "Todavía no hay histórico local validado."}
+                  No fue posible consultar información nueva.{" "}
+                  {status.total && status.last
+                    ? `Se muestran los últimos datos disponibles, con vigencia hasta el ${shortDate(status.last.valid_to)}.`
+                    : "Todavía no hay registros disponibles. Intente actualizar la información más tarde."}
                 </p>
               )}
             </aside>
@@ -384,14 +382,14 @@ export default function App() {
 
           {page === "home" && (
             <details className="panel demo-guide">
-              <summary>Recorrido para la demostración académica</summary>
+              <summary>Guía de consulta y análisis</summary>
               <ol>
                 <li>
                   <button
                     className="text-button"
                     onClick={() => navigate("source")}
                   >
-                    Verificar fuente, cobertura y última sincronización.
+                    Consultar procedencia, cobertura y última actualización.
                   </button>
                 </li>
                 <li>
@@ -423,8 +421,7 @@ export default function App() {
                     className="text-button"
                     onClick={() => navigate("simulation")}
                   >
-                    Ejecutar ambos métodos, cambiar la semilla y reproducir el
-                    experimento.
+                    Explorar escenarios Montecarlo y bootstrap.
                   </button>
                 </li>
                 <li>
@@ -436,7 +433,7 @@ export default function App() {
                   </button>
                 </li>
                 <li>
-                  Descargar Excel desde cada resultado y explicar los supuestos
+                  Descargar resultados en Excel y consultar los supuestos
                   en{" "}
                   <button
                     className="text-button"
@@ -448,9 +445,8 @@ export default function App() {
                 </li>
               </ol>
               <p>
-                El análisis usa el histórico local y puede funcionar sin
-                conexión externa. Guarde el identificador de cada experimento
-                para volver a abrirlo; su instantánea conserva los datos usados.
+                Guarde el identificador de cada experimento para volver a
+                consultar sus parámetros, datos de entrenamiento y resultados.
               </p>
             </details>
           )}
@@ -461,10 +457,10 @@ export default function App() {
                 <span>
                   <i className={sourceFailure ? "dot amber" : "dot"} />
                   {sourceFailure
-                    ? "La fuente no pudo actualizarse · se conserva la copia local"
+                    ? "Última comprobación no completada · datos disponibles"
                     : status?.total
-                      ? "Datos oficiales · copia local validada"
-                      : "Sin histórico local · sincronice la fuente"}
+                      ? "Superintendencia Financiera · Datos Abiertos Colombia"
+                      : "Sin registros disponibles · consulte la fuente"}
                 </span>
                 <button
                   className="text-button"
@@ -718,13 +714,13 @@ export default function App() {
               {historicalPage && !invalidRange && loading && !series && (
                 <div className="loading panel" role="status">
                   <span className="spinner" />
-                  Consultando registros locales…
+                  Consultando registros…
                 </div>
               )}
               {historicalPage && !invalidRange && loading && series && (
                 <p className="period-continuity" role="status">
-                  Actualizando el periodo seleccionado; se conservan los últimos
-                  resultados mientras llega la consulta local.
+                  Actualizando el periodo seleccionado. Se conservan los últimos
+                  resultados hasta completar la consulta.
                 </p>
               )}
               {historicalPage &&
@@ -984,18 +980,18 @@ export default function App() {
               <section className="panel audit-panel">
                 <div className="section-heading">
                   <div>
-                    <h2>Una fuente verificable. Una copia trazable.</h2>
+                    <h2>Procedencia y cobertura de la información</h2>
                     <p>
-                      La consulta utiliza SQLite local. Solo las
-                      sincronizaciones automática y manual acceden a la fuente
-                      externa.
+                      Serie oficial de la Superintendencia Financiera de
+                      Colombia, publicada en Datos Abiertos Colombia. Consulte
+                      su cobertura, vigencias y resultados de actualización.
                     </p>
                   </div>
                   <span className="outline-tag">32sa-8pi3</span>
                 </div>
                 <dl className="audit-grid">
                   <div>
-                    <dt>Registros locales</dt>
+                    <dt>Registros disponibles</dt>
                     <dd>{status ? number.format(status.total) : "—"}</dd>
                   </div>
                   <div>
@@ -1007,11 +1003,11 @@ export default function App() {
                     <dd>{shortDate(status?.last?.valid_to)}</dd>
                   </div>
                   <div>
-                    <dt>Última sincronización validada</dt>
+                    <dt>Última actualización comprobada</dt>
                     <dd>{timestamp(status?.last_success?.finished_at)}</dd>
                   </div>
                   <div>
-                    <dt>Comprobación automática</dt>
+                    <dt>Actualización periódica</dt>
                     <dd>
                       {status?.auto_sync_enabled
                         ? `Cada ${status.auto_sync_interval_hours} horas`
@@ -1019,7 +1015,7 @@ export default function App() {
                     </dd>
                   </div>
                   <div>
-                    <dt>Próxima comprobación automática prevista</dt>
+                    <dt>Próxima comprobación prevista</dt>
                     <dd>
                       {status?.next_auto_check_at
                         ? timestamp(status.next_auto_check_at)
@@ -1027,7 +1023,7 @@ export default function App() {
                     </dd>
                   </div>
                   <div>
-                    <dt>Filas de última descarga: esperadas / recibidas</dt>
+                    <dt>Registros previstos / recibidos en la última actualización</dt>
                     <dd>
                       {status?.last_success
                         ? `${status.last_success.expected} / ${status.last_success.received}`
@@ -1035,11 +1031,11 @@ export default function App() {
                     </dd>
                   </div>
                   <div>
-                    <dt>Total remoto contrastado</dt>
+                    <dt>Registros informados por la fuente</dt>
                     <dd>{status?.last_success?.audit.remote_total ?? "—"}</dd>
                   </div>
                   <div>
-                    <dt>Estado del último intento</dt>
+                    <dt>Resultado de la última comprobación</dt>
                     <dd>
                       {status?.last_attempt
                         ? {
@@ -1048,7 +1044,7 @@ export default function App() {
                             running: "En curso",
                           }[status.last_attempt.status] ||
                           status.last_attempt.status
-                        : "Sin intentos"}
+                        : "Sin comprobaciones registradas"}
                     </dd>
                   </div>
                   {[
@@ -1074,7 +1070,7 @@ export default function App() {
                     </div>
                   ))}
                   <div>
-                    <dt>Rechazados / conflictos del último intento</dt>
+                    <dt>Registros no aceptados / inconsistencias</dt>
                     <dd>
                       {status?.last_attempt
                         ? `${status.last_attempt.audit.rejected ?? 0} / ${status.last_attempt.audit.conflicts ?? 0}`
@@ -1088,34 +1084,31 @@ export default function App() {
                   sin declararlas vigentes hoy.
                 </p>
                 {status?.last_attempt?.error && (
-                  <ErrorBox message={status.last_attempt.error} />
+                  <ErrorBox message="No fue posible completar la consulta de nuevas publicaciones. Intente actualizar la información más tarde." />
                 )}
-                <p className="fingerprint">
-                  SHA-256 del conjunto local{" "}
-                  <code>{status?.dataset_fingerprint || "—"}</code>
-                </p>
               </section>
               <section className="panel sync-panel">
                 <div>
-                  <p className="eyebrow">ACTUALIZACIÓN MANUAL</p>
-                  <h2>Sincronizar con Datos Abiertos Colombia</h2>
+                  <p className="eyebrow">NUEVAS PUBLICACIONES</p>
+                  <h2>Actualizar información</h2>
                   <p>
-                    La descarga se valida por completo antes de sustituir datos.
-                    Un fallo conserva el último histórico validado.
+                    Consulte las nuevas publicaciones de Datos Abiertos Colombia.
+                    Si la consulta no se completa, se conservan los registros
+                    disponibles.
                   </p>
                 </div>
                 <div className="sync-controls">
                   <label>
-                    Tipo de sincronización
+                    Alcance de la actualización
                     <select
                       value={syncMode}
                       disabled={syncing}
                       onChange={(e) => setSyncMode(e.target.value)}
                     >
                       <option value="incremental">
-                        Incremental · ventana retrospectiva configurada
+                        Registros recientes
                       </option>
-                      <option value="full">Completa · todo el histórico</option>
+                      <option value="full">Histórico completo</option>
                     </select>
                   </label>
                   <button
@@ -1124,14 +1117,14 @@ export default function App() {
                     onClick={() => void synchronize()}
                   >
                     {syncing
-                      ? "Descargando y validando…"
-                      : "Sincronizar fuente oficial ↻"}
+                      ? "Consultando información…"
+                      : "Comprobar nuevas publicaciones ↻"}
                   </button>
                 </div>
                 <details>
-                  <summary>Acceso administrativo</summary>
+                  <summary>Autorización de actualización</summary>
                   <label>
-                    Token administrativo (si está configurado)
+                    Clave de actualización (si se requiere)
                     <input
                       type="password"
                       autoComplete="off"
@@ -1142,8 +1135,8 @@ export default function App() {
                 </details>
                 {syncing && (
                   <p role="status">
-                    Recuperando páginas y contrastando integridad. Puede tardar
-                    unos minutos.
+                    Consultando y verificando los registros oficiales. Puede
+                    tardar unos minutos.
                   </p>
                 )}
                 {syncError && <ErrorBox message={syncError} />}
@@ -1168,9 +1161,9 @@ export default function App() {
                   Abrir conjunto oficial de TRM ↗
                 </a>
                 <p>
-                  Los datos originales y sus huellas se conservan por versión.
-                  La revisión de un registro queda respaldada en el
-                  almacenamiento local.
+                  Cada registro incluye el valor certificado y sus fechas de
+                  vigencia. Las correcciones publicadas por la fuente se
+                  incorporan conservando las versiones anteriores.
                 </p>
               </section>
             </>
@@ -1179,7 +1172,7 @@ export default function App() {
           {page === "method" && (
             <section className="panel methodology">
               <p className="eyebrow">METODOLOGÍA Y FUENTES</p>
-              <h2>Primero, entender el dato.</h2>
+              <h2>Conceptos y criterios del análisis</h2>
               <p>
                 Proyecto de Simulación · Ingeniería de Sistemas · Universidad
                 Piloto de Colombia, Seccional Alto Magdalena · 2026-II. Docente:
@@ -1223,29 +1216,25 @@ export default function App() {
                 compara con el registro original anterior y no depende del
                 filtro del gráfico.
               </p>
-              <h3>Integridad y consulta sin conexión externa</h3>
+              <h3>Calidad y disponibilidad de la información</h3>
               <p>
-                La descarga utiliza paginación explícita, orden estable e
-                identificadores remotos. Se comprueban conteos, cobertura y
-                cambios de la fuente durante la descarga. La publicación local
-                es transaccional. Las consultas posteriores funcionan con la
-                copia local y muestran cuándo fue validada.
+                Antes de incorporar información se comprueban valores,
+                cobertura y vigencias. Si la fuente no está disponible, puede
+                consultar los registros obtenidos en la última actualización
+                satisfactoria, cuya fecha se muestra en la aplicación.
               </p>
               <p>
-                La actualización incremental revisa una ventana retrospectiva
-                configurable; puede no detectar revisiones más antiguas. La
-                sincronización completa permite contrastar de nuevo todo el
-                histórico.
+                La consulta de registros recientes también revisa publicaciones
+                anteriores que pueden haber sido corregidas. Para contrastar
+                correcciones más antiguas, seleccione Histórico completo en
+                Calidad de datos.
               </p>
-              <h3>Alcance de esta entrega</h3>
+              <h3>Alcance e interpretación</h3>
               <p>
-                La base oficial, la exploración histórica y el análisis
-                estadístico de niveles y rendimientos, junto con la comparación
-                de periodos, Montecarlo y bootstrap, están disponibles. Las
-                exportaciones y la validación retrospectiva están disponibles.
-                La siguiente fase consolida calidad, accesibilidad y
-                rendimiento. Los resultados descriptivos no constituyen
-                recomendaciones de inversión.
+                Los análisis describen el comportamiento de la TRM en los
+                periodos seleccionados. Las simulaciones representan escenarios
+                condicionados a una muestra y a supuestos estadísticos; no son
+                predicciones garantizadas ni recomendaciones de inversión.
               </p>
               <h3>Rendimientos, dispersión y distribuciones</h3>
               <p>
@@ -1321,7 +1310,7 @@ export default function App() {
               </div>
               <p>
                 Montecarlo estima μ como la media de los rendimientos
-                logarítmicos y σ como su desviación muestral (ddof = 1), y
+                logarítmicos y σ como su desviación muestral (divisor n − 1), y
                 supone innovaciones normales independientes con parámetros
                 constantes. Es un modelo discreto logarítmico: no se añade el
                 ajuste de deriva propio de una calibración continua de
@@ -1338,11 +1327,10 @@ export default function App() {
                 terminal sobre todas las réplicas.
               </p>
               <p>
-                Se conserva una instantánea del entrenamiento, todos los precios
-                simulados, los parámetros, las versiones y las huellas. La
-                reproducción usa la instantánea, aunque la fuente cambie. La
-                misma semilla requiere también la misma muestra, algoritmo y
-                entorno numérico para reproducir exactamente los resultados.
+                Cada experimento conserva sus datos de entrenamiento, parámetros
+                y resultados para su consulta y reproducción, incluso si la
+                fuente se revisa. La reproducción exacta requiere la misma
+                semilla, muestra, método y condiciones de cálculo.
               </p>
               <h3>Validación retrospectiva y diagnósticos</h3>
               <p>
@@ -1382,14 +1370,13 @@ export default function App() {
               </p>
               <h3>Libros Excel</h3>
               <p>
-                Las descargas son XLSX auténticos de valores calculados, no
-                modelos recalculables. Conservan fechas Excel, números, filtros,
-                recuentos, fuente, parámetros y huellas. La paginación de
+                Los archivos Excel contienen los resultados calculados, sus
+                datos, filtros, recuentos, fuente y parámetros. Las fórmulas no
+                se recalculan al editar el archivo. La paginación de
                 pantalla no limita la descarga. Las simulaciones pueden incluir
                 todas las matrices guardadas, no solo las trayectorias
                 dibujadas. Si se solicita omitirlas, el libro lo declara. Las
-                celdas vacías indican resultados no disponibles; los textos
-                externos se escriben como texto literal.
+                celdas vacías indican resultados no disponibles.
               </p>
               <div className="reference-links">
                 <a
@@ -1407,17 +1394,12 @@ export default function App() {
                   Consulta histórica del Banco de la República ↗
                 </a>
               </div>
-              <p className="convention">
-                Proyecto de Simulación · Ingeniería de Sistemas · Docente:
-                Carlos David Moncada Beltrán. Las ampliaciones estadísticas son
-                propuestas técnicas del proyecto.
-              </p>
             </section>
           )}
           <footer>
             <span>SIMTRM · Información oficial, análisis con contexto.</span>
             <span>
-              Copia local validada:{" "}
+              Última comprobación satisfactoria:{" "}
               {timestamp(status?.last_success?.finished_at)}
             </span>
           </footer>

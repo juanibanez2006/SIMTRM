@@ -81,7 +81,7 @@ function validation(form: FormState, today: string): string {
     return "La semilla debe ser un entero entre 0 y 4.294.967.295.";
   const methods = form.method === "both" ? 2 : 1;
   if (Number(form.replicas) * (Number(form.horizon) + 1) * methods > 2_000_000)
-    return "El experimento supera 2.000.000 de celdas; reduzca réplicas u horizonte.";
+    return "El experimento supera 2.000.000 de valores simulados; reduzca réplicas u horizonte.";
   for (const key of [
     "initial_price",
     "threshold",
@@ -192,10 +192,10 @@ export default function SimulationPage({
       );
       setMessage(
         action === "replay"
-          ? "Reproducción verificada: la huella numérica coincide con el experimento original."
+          ? "El experimento se reprodujo con los mismos resultados."
           : action === "load"
-            ? "Experimento recuperado desde su resultado guardado."
-            : "Experimento ejecutado y guardado con su entrenamiento y todas las trayectorias.",
+            ? "Experimento recuperado."
+            : "Experimento completado y guardado.",
       );
     } catch (err) {
       setError(
@@ -254,14 +254,15 @@ export default function SimulationPage({
       </section>
       {status.state === "source_error" && (
         <p className="analysis-warnings">
-          La fuente no pudo actualizarse. El simulador utiliza la copia local
-          validada; consulte su fecha de sincronización en Calidad de datos.
+          La última consulta de nuevas publicaciones no pudo completarse. Los
+          escenarios utilizarán los registros disponibles para el periodo de
+          entrenamiento seleccionado.
         </p>
       )}
       {!status.total && (
         <div className="empty-state panel">
           <h2>Primero se necesitan datos oficiales</h2>
-          <p>Sincronice el histórico para calibrar ambos métodos.</p>
+          <p>Consulte las publicaciones oficiales desde Calidad de datos para calibrar los métodos.</p>
           <button className="primary" onClick={prepareData}>
             Preparar datos del simulador
           </button>
@@ -436,7 +437,7 @@ export default function SimulationPage({
           >
             Ejecutar simulación
           </button>
-          <span>Máximo 2.000.000 de celdas entre todos los métodos.</span>
+          <span>Hasta 2.000.000 de valores simulados entre los métodos seleccionados.</span>
         </div>
         {invalid && (
           <p className="comparison-validation" role="alert">
@@ -464,14 +465,14 @@ export default function SimulationPage({
         </button>
         {experiment && (
           <button disabled={busy} onClick={() => void run("replay")}>
-            Reproducir desde instantánea
+            Reproducir experimento
           </button>
         )}
       </section>
       {busy && (
         <div className="loading panel" role="status">
           <span className="spinner" />
-          Procesando experimento local…
+          Calculando escenarios…
         </div>
       )}
       {error && (
@@ -812,8 +813,17 @@ export default function SimulationPage({
             />
           </section>
           <details className="panel analysis-audit">
-            <summary>Calibración, reproducibilidad y trazabilidad</summary>
-            <p>{experiment.convention}</p>
+            <summary>Calibración y reproducción del experimento</summary>
+            <p>
+              El entrenamiento usa únicamente los registros del periodo
+              seleccionado hasta el corte. Los rendimientos se calculan entre
+              vigencias contiguas, incluyendo los precios iguales y excluyendo
+              los huecos. La desviación muestral utiliza el divisor n − 1.
+              Todas las réplicas intervienen en los percentiles y probabilidades;
+              el gráfico muestra solo las trayectorias indicadas. Para reproducir
+              el resultado se conservan la muestra y los parámetros originales;
+              también se requieren las mismas condiciones de cálculo.
+            </p>
             <dl className="audit-grid">
               <div>
                 <dt>Media logarítmica μ por paso</dt>
@@ -828,19 +838,6 @@ export default function SimulationPage({
                 <dd>
                   {experiment.request.seed} · {experiment.request.horizon} ·{" "}
                   {experiment.request.replicas}
-                </dd>
-              </div>
-              <div>
-                <dt>Modelo · generador</dt>
-                <dd>
-                  {experiment.model_version} · {experiment.bit_generator}
-                </dd>
-              </div>
-              <div>
-                <dt>Entorno numérico</dt>
-                <dd>
-                  NumPy {experiment.numpy_version} · Python{" "}
-                  {experiment.python_version} · {experiment.machine}
                 </dd>
               </div>
               <div>
@@ -864,14 +861,6 @@ export default function SimulationPage({
                   Reproduce: {experiment.replay_of}
                 </>
               )}
-            </p>
-            <p>
-              Huella del entrenamiento{" "}
-              <code>{experiment.training.dataset_fingerprint}</code>
-            </p>
-            <p>
-              Huella numérica del experimento{" "}
-              <code>{experiment.numeric_fingerprint}</code>
             </p>
           </details>
         </>

@@ -128,7 +128,7 @@ export default function StatisticsPage({
       {loading && (
         <div className="loading panel" role="status">
           <span className="spinner" />
-          Calculando estadísticas locales…
+          Calculando estadísticas…
         </div>
       )}
       {error && (
@@ -225,7 +225,7 @@ export default function StatisticsPage({
                   [
                     "Desviación estándar muestral",
                     value(stats.summary.sample_std),
-                    `${unit} · ddof = 1`,
+                    `${unit} · divisor n − 1`,
                   ],
                 ].map(([label, result, suffix]) => (
                   <article className="metric" key={label}>
@@ -409,7 +409,7 @@ export default function StatisticsPage({
             <div className="section-heading">
               <div>
                 <h2>Volatilidad histórica sin anualizar</h2>
-                <p>{stats.volatility.convention}</p>
+                <p>{stats.volatility.convention.replace("ddof=1", "divisor n − 1")}</p>
               </div>
               <div className="volatility-value">
                 <strong>{percent(stats.volatility.historical)}</strong>
@@ -432,7 +432,7 @@ export default function StatisticsPage({
             </p>
           </section>
           <details className="panel analysis-audit">
-            <summary>Procedimiento y trazabilidad del cálculo</summary>
+            <summary>Criterios del cálculo</summary>
             <p>{stats.convention}</p>
             <div className="formula">
               Rₜ = Pₜ / Pₜ₋₁ − 1 · rₜ = ln(Pₜ / Pₜ₋₁) · Rₜ = exp(rₜ) − 1<br />
@@ -449,10 +449,8 @@ export default function StatisticsPage({
               <br />
               Corte: {shortDate(stats.cutoff_date)} · Cálculo:{" "}
               {timestamp(stats.calculated_at)}
-              <br />
-              Algoritmo: {stats.model_version} · NumPy {stats.numpy_version}
+
             </p>
-            <code>{stats.dataset_fingerprint}</code>
           </details>
         </>
       )}

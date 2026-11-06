@@ -80,10 +80,10 @@ export default function useLocalData(refresh: number) {
         if (!disposed)
           setError(
             current.signal.aborted
-              ? "La consulta local agotó su tiempo de espera. Se conservan los últimos datos recibidos."
+              ? "La consulta está tardando más de lo esperado. Inténtelo de nuevo."
               : err instanceof Error
                 ? err.message
-                : "No se pudo consultar el estado local",
+                : "No fue posible consultar la información",
           );
       } finally {
         window.clearTimeout(timeout);

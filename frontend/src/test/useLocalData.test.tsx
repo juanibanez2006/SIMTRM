@@ -113,7 +113,7 @@ it("recalcula vigencia al cruzar medianoche en Bogotá aunque falle la conexión
   expect(result.current.today).toBe("2026-11-06");
   expect(result.current.latest?.state).toBe("stale");
   expect(result.current.latest?.record?.value).toBe("100.00");
-  expect(result.current.metadataError).toContain("backend");
+  expect(result.current.metadataError).toContain("No fue posible consultar la información");
   offline = false;
   await tick(60_000);
   expect(result.current.metadataError).toBe("");
@@ -148,7 +148,7 @@ it("cancela una consulta local colgada y vuelve a comprobar en el siguiente inte
   );
   await tick(60_000);
   await tick(15_000);
-  expect(result.current.metadataError).toContain("tiempo de espera");
+  expect(result.current.metadataError).toContain("tardando más de lo esperado");
   expect(result.current.status?.total).toBe(1);
   fetchMock.mockImplementation(async (path: string) =>
     Response.json(

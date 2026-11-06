@@ -230,7 +230,7 @@ it("recupera una comparación fallida y muestra carga durante la consulta", asyn
   pending = true;
   await user.click(screen.getByRole("button", { name: "Comparar periodos" }));
   expect(screen.getByRole("status")).toHaveTextContent(
-    "Comparando periodos locales",
+    "Comparando periodos",
   );
   expect(screen.queryByRole("img")).not.toBeInTheDocument();
 });

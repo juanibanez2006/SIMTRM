@@ -225,7 +225,7 @@ it("valida consumo de recursos e intervalos incompletos", () => {
   fireEvent.change(screen.getByLabelText("Número de réplicas"), {
     target: { value: "50000" },
   });
-  expect(screen.getByRole("alert")).toHaveTextContent("2.000.000 de celdas");
+  expect(screen.getByRole("alert")).toHaveTextContent("2.000.000 de valores simulados");
   fireEvent.change(screen.getByLabelText("Número de réplicas"), {
     target: { value: "100" },
   });
@@ -241,11 +241,11 @@ it("reproduce un resultado guardado usando su instantánea", async () => {
   setup();
   await execute();
   await user.click(
-    screen.getByRole("button", { name: "Reproducir desde instantánea" }),
+    screen.getByRole("button", { name: "Reproducir experimento" }),
   );
   expect(
     await screen.findByText(
-      /Reproducción verificada: la huella numérica coincide/,
+      /El experimento se reprodujo con los mismos resultados/,
     ),
   ).toBeInTheDocument();
   expect(fetchMock.mock.calls.at(-1)![0]).toBe(
@@ -263,7 +263,7 @@ it("recupera un experimento por identificador sin recalcularlo", async () => {
   await user.click(screen.getByRole("button", { name: "Abrir experimento" }));
   expect(
     await screen.findByText(
-      "Experimento recuperado desde su resultado guardado.",
+      "Experimento recuperado.",
     ),
   ).toBeInTheDocument();
   expect(fetchMock.mock.calls[0][0]).toBe(`/api/v1/simulations/${fixture.id}`);
@@ -283,7 +283,7 @@ it("muestra carga y errores sin inventar escenarios", async () => {
   pending = true;
   await user.click(screen.getByRole("button", { name: "Ejecutar simulación" }));
   expect(screen.getByRole("status")).toHaveTextContent(
-    "Procesando experimento local",
+    "Calculando escenarios",
   );
   expect(screen.getByLabelText("Semilla aleatoria")).toBeDisabled();
 });

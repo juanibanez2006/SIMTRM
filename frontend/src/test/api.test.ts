@@ -14,7 +14,7 @@ it("expone un error HTTP comprensible incluso sin JSON", async () => {
     vi.fn().mockResolvedValue(new Response("bad", { status: 502 })),
   );
   await expect(request("/trm/history")).rejects.toThrow(
-    "El servicio respondió con error 502",
+    "No fue posible completar la consulta",
   );
 });
 
@@ -30,7 +30,7 @@ it("explica una desconexión del backend en español", async () => {
     vi.fn().mockRejectedValue(new TypeError("Failed to fetch")),
   );
   await expect(request("/trm/latest")).rejects.toThrow(
-    "Compruebe que el backend esté iniciado",
+    "No fue posible consultar la información",
   );
 });
 
@@ -46,5 +46,44 @@ it("conserva las cancelaciones y rechaza respuestas exitosas que no son JSON", a
     "fetch",
     vi.fn().mockResolvedValue(new Response("<html>proxy</html>")),
   );
-  await expect(request("/trm/latest")).rejects.toThrow("respuesta no válida");
+  await expect(request("/trm/latest")).rejects.toThrow("No fue posible interpretar la información");
+});
+
+it.each([
+  [500, "Error interno del servicio"],
+  [502, "Traceback: RuntimeError en C:\\app\\source.py"],
+  [502, "La fuente devolvió JSON inválido"],
+  [422, { detail: "unexpected response" }],
+])("presenta un aviso comprensible ante HTTP %s sin exponer detalles internos", async (status, message) => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+    Response.json({ error: { message } }, { status }),
+  ));
+  await expect(request("/data/sync")).rejects.toThrow(
+    "No fue posible completar la consulta. Inténtelo de nuevo en unos momentos.",
+  );
+});
+
+it("conserva la indicación necesaria para corregir los parámetros del análisis", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+    Response.json({ error: { message: "La fecha inicial no puede superar la final" } }, { status: 422 }),
+  ));
+  await expect(request("/statistics")).rejects.toThrow("La fecha inicial no puede superar la final");
+});
+
+it("explica cómo continuar cuando la reproducción exacta no es posible", async () => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+    Response.json({ error: { message: "El entorno numérico o el algoritmo cambió; no se garantiza reproducción exacta" } }, { status: 422 }),
+  ));
+  await expect(request("/simulations/example/replay")).rejects.toThrow("Puede consultar o descargar el resultado guardado");
+});
+
+it.each([
+  ["Base de datos no disponible", "Los datos no están disponibles"],
+  ["Token administrativo requerido", "Revise la clave de actualización"],
+  ["Sincronización restringida al equipo local", "No tiene autorización para actualizar"],
+])("orienta al usuario ante %s", async (message, expected) => {
+  vi.stubGlobal("fetch", vi.fn().mockResolvedValue(
+    Response.json({ error: { message } }, { status: 403 }),
+  ));
+  await expect(request("/data/sync")).rejects.toThrow(expected);
 });
