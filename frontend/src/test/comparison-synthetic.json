@@ -1,0 +1,325 @@
+{
+  "alignment": "observation",
+  "a": {
+    "requested_start": "2024-01-01",
+    "requested_end": "2024-01-31",
+    "observed_start": "2024-01-01",
+    "observed_end": "2024-01-03",
+    "return_count": 2,
+    "gap_count": 0,
+    "excluded_future_records": 0,
+    "metrics": {
+      "count": 3,
+      "mean": 110.0,
+      "median": 110.0,
+      "minimum": 100.0,
+      "maximum": 120.0,
+      "sample_std": 10.0,
+      "initial_value": 100.0,
+      "final_value": 120.0,
+      "absolute_change": 20.0,
+      "relative_change": 0.2,
+      "cumulative_return": 0.2,
+      "volatility": 0.005868139746000911
+    },
+    "points": [
+      {
+        "position": 1,
+        "date": "2024-01-01",
+        "valid_to": "2024-01-01",
+        "effective_date": "2024-01-01",
+        "effective_until": "2024-01-01",
+        "value": "100",
+        "normalized": 100.0,
+        "gap_before": false
+      },
+      {
+        "position": 2,
+        "date": "2024-01-02",
+        "valid_to": "2024-01-02",
+        "effective_date": "2024-01-02",
+        "effective_until": "2024-01-02",
+        "value": "110",
+        "normalized": 110.0,
+        "gap_before": false
+      },
+      {
+        "position": 3,
+        "date": "2024-01-03",
+        "valid_to": "2024-01-03",
+        "effective_date": "2024-01-03",
+        "effective_until": "2024-01-03",
+        "value": "120",
+        "normalized": 120.0,
+        "gap_before": false
+      }
+    ],
+    "dataset_fingerprint": "0f385b634fb61a581a4457f37453e9c910adbf696bb13d21f5bd40ae816354e6",
+    "warnings": [
+      "La fuente cubre parcialmente los límites solicitados; no se completan observaciones."
+    ]
+  },
+  "b": {
+    "requested_start": "2024-02-01",
+    "requested_end": "2024-02-29",
+    "observed_start": "2024-02-01",
+    "observed_end": "2024-02-04",
+    "return_count": 3,
+    "gap_count": 0,
+    "excluded_future_records": 0,
+    "metrics": {
+      "count": 4,
+      "mean": 232.05,
+      "median": 231.0,
+      "minimum": 200.0,
+      "maximum": 266.2,
+      "sample_std": 28.505145734293887,
+      "initial_value": 200.0,
+      "final_value": 266.2,
+      "absolute_change": 66.2,
+      "relative_change": 0.331,
+      "cumulative_return": 0.331,
+      "volatility": 0.0
+    },
+    "points": [
+      {
+        "position": 1,
+        "date": "2024-02-01",
+        "valid_to": "2024-02-01",
+        "effective_date": "2024-02-01",
+        "effective_until": "2024-02-01",
+        "value": "200",
+        "normalized": 100.0,
+        "gap_before": false
+      },
+      {
+        "position": 2,
+        "date": "2024-02-02",
+        "valid_to": "2024-02-02",
+        "effective_date": "2024-02-02",
+        "effective_until": "2024-02-02",
+        "value": "220",
+        "normalized": 110.0,
+        "gap_before": false
+      },
+      {
+        "position": 3,
+        "date": "2024-02-03",
+        "valid_to": "2024-02-03",
+        "effective_date": "2024-02-03",
+        "effective_until": "2024-02-03",
+        "value": "242",
+        "normalized": 121.0,
+        "gap_before": false
+      },
+      {
+        "position": 4,
+        "date": "2024-02-04",
+        "valid_to": "2024-02-04",
+        "effective_date": "2024-02-04",
+        "effective_until": "2024-02-04",
+        "value": "266.2",
+        "normalized": 133.1,
+        "gap_before": false
+      }
+    ],
+    "dataset_fingerprint": "0ed9df9deb7bd4816dc378ce08470ef10df6a6770c2301a812351a5d8ae0e208",
+    "warnings": [
+      "La fuente cubre parcialmente los límites solicitados; no se completan observaciones."
+    ]
+  },
+  "differences": [
+    {
+      "metric": "count",
+      "unit": "count",
+      "a": 3.0,
+      "b": 4.0,
+      "delta": 1.0,
+      "relative_delta": null
+    },
+    {
+      "metric": "mean",
+      "unit": "COP/USD",
+      "a": 110.0,
+      "b": 232.05,
+      "delta": 122.05000000000001,
+      "relative_delta": 1.1095454545454548
+    },
+    {
+      "metric": "median",
+      "unit": "COP/USD",
+      "a": 110.0,
+      "b": 231.0,
+      "delta": 121.0,
+      "relative_delta": 1.1
+    },
+    {
+      "metric": "minimum",
+      "unit": "COP/USD",
+      "a": 100.0,
+      "b": 200.0,
+      "delta": 100.0,
+      "relative_delta": 1.0
+    },
+    {
+      "metric": "maximum",
+      "unit": "COP/USD",
+      "a": 120.0,
+      "b": 266.2,
+      "delta": 146.2,
+      "relative_delta": 1.2183333333333333
+    },
+    {
+      "metric": "sample_std",
+      "unit": "COP/USD",
+      "a": 10.0,
+      "b": 28.505145734293887,
+      "delta": 18.505145734293887,
+      "relative_delta": 1.8505145734293889
+    },
+    {
+      "metric": "initial_value",
+      "unit": "COP/USD",
+      "a": 100.0,
+      "b": 200.0,
+      "delta": 100.0,
+      "relative_delta": 1.0
+    },
+    {
+      "metric": "final_value",
+      "unit": "COP/USD",
+      "a": 120.0,
+      "b": 266.2,
+      "delta": 146.2,
+      "relative_delta": 1.2183333333333333
+    },
+    {
+      "metric": "absolute_change",
+      "unit": "COP/USD",
+      "a": 20.0,
+      "b": 66.2,
+      "delta": 46.2,
+      "relative_delta": null
+    },
+    {
+      "metric": "relative_change",
+      "unit": "fraction",
+      "a": 0.2,
+      "b": 0.331,
+      "delta": 0.131,
+      "relative_delta": null
+    },
+    {
+      "metric": "cumulative_return",
+      "unit": "fraction",
+      "a": 0.2,
+      "b": 0.331,
+      "delta": 0.131,
+      "relative_delta": null
+    },
+    {
+      "metric": "volatility",
+      "unit": "fraction",
+      "a": 0.005868139746000911,
+      "b": 0.0,
+      "delta": -0.005868139746000911,
+      "relative_delta": null
+    }
+  ],
+  "rows": [
+    {
+      "position": 1,
+      "a": {
+        "position": 1,
+        "date": "2024-01-01",
+        "valid_to": "2024-01-01",
+        "effective_date": "2024-01-01",
+        "effective_until": "2024-01-01",
+        "value": "100",
+        "normalized": 100.0,
+        "gap_before": false
+      },
+      "b": {
+        "position": 1,
+        "date": "2024-02-01",
+        "valid_to": "2024-02-01",
+        "effective_date": "2024-02-01",
+        "effective_until": "2024-02-01",
+        "value": "200",
+        "normalized": 100.0,
+        "gap_before": false
+      }
+    },
+    {
+      "position": 2,
+      "a": {
+        "position": 2,
+        "date": "2024-01-02",
+        "valid_to": "2024-01-02",
+        "effective_date": "2024-01-02",
+        "effective_until": "2024-01-02",
+        "value": "110",
+        "normalized": 110.0,
+        "gap_before": false
+      },
+      "b": {
+        "position": 2,
+        "date": "2024-02-02",
+        "valid_to": "2024-02-02",
+        "effective_date": "2024-02-02",
+        "effective_until": "2024-02-02",
+        "value": "220",
+        "normalized": 110.0,
+        "gap_before": false
+      }
+    },
+    {
+      "position": 3,
+      "a": {
+        "position": 3,
+        "date": "2024-01-03",
+        "valid_to": "2024-01-03",
+        "effective_date": "2024-01-03",
+        "effective_until": "2024-01-03",
+        "value": "120",
+        "normalized": 120.0,
+        "gap_before": false
+      },
+      "b": {
+        "position": 3,
+        "date": "2024-02-03",
+        "valid_to": "2024-02-03",
+        "effective_date": "2024-02-03",
+        "effective_until": "2024-02-03",
+        "value": "242",
+        "normalized": 121.0,
+        "gap_before": false
+      }
+    },
+    {
+      "position": 4,
+      "a": null,
+      "b": {
+        "position": 4,
+        "date": "2024-02-04",
+        "valid_to": "2024-02-04",
+        "effective_date": "2024-02-04",
+        "effective_until": "2024-02-04",
+        "value": "266.2",
+        "normalized": 133.1,
+        "gap_before": false
+      }
+    }
+  ],
+  "paired_positions": 3,
+  "source": "Muestra sintetica exclusiva para pruebas",
+  "cutoff_date": "2026-11-05",
+  "calculated_at": "2026-11-05T09:00:00-05:00",
+  "model_version": "comparison-1.0.0",
+  "dataset_fingerprint": "5d6ae64b09c1c81c9e44bd26c2324ccd22d3135a7406ade71be0ea3b68b2e30b",
+  "convention": "Registros originales cuyas vigencias intersectan cada selección; sin ponderar por días. Base 100: índice = (P / primer valor válido del periodo) × 100. Alineación por observación: posiciones 1, 2, …; no representa el mismo día calendario. Por días transcurridos: posición 0 = inicio solicitado; se recortan visualmente las vigencias a sus límites. Se respetan los días bisiestos. No se interpolan, rellenan ni fuerzan coincidencias de posiciones ausentes. La tabla une inicios de registro: una celda ausente no equivale a falta de cobertura. Las estadísticas usan todos los datos de cada periodo, con independencia de la alineación. Variación relativa: último / primero − 1; coincide con el rendimiento acumulado si hay al menos dos registros y cobertura interna continua. Volatilidad: desviación muestral de rendimientos logarítmicos entre vigencias contiguas (ddof=1), sin anualizar. Diferencias siempre B − A; diferencias de rendimientos o volatilidad expresadas como puntos porcentuales en la interfaz.",
+  "interpretation": "La media del periodo A es 110,000000 COP/USD y la del periodo B es 232,050000 COP/USD. La diferencia B − A es 122,050000 COP/USD. Estos resultados describen los registros seleccionados, sin atribuir causas económicas ni demostrar diferencias estadísticamente significativas.",
+  "warnings": [
+    "Los periodos tienen distinta cantidad de registros. Se comparan sus muestras completas; no se recortan a la longitud más corta."
+  ]
+}

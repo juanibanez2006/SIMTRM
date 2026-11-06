@@ -1,0 +1,376 @@
+{
+  "id": "00000000-0000-4000-8000-000000000001",
+  "replay_of": null,
+  "request": {
+    "training_start": "2024-01-01",
+    "training_end": "2024-01-08",
+    "cutoff_date": "2024-01-08",
+    "method": "both",
+    "horizon": 3,
+    "replicas": 8,
+    "seed": 2026,
+    "initial_price": null,
+    "threshold": null,
+    "interval_low": null,
+    "interval_high": null,
+    "display_paths": 3
+  },
+  "initial_price": 120.0,
+  "initial_price_origin": "last_training_record",
+  "threshold": 120.0,
+  "training": {
+    "record_count": 5,
+    "return_count": 4,
+    "gap_count": 0,
+    "extended_records": 2,
+    "first_date": "2024-01-01",
+    "last_date": "2024-01-08",
+    "initial_record_date": "2024-01-08",
+    "mu": 0.04558038919848866,
+    "sigma": 0.05752287475106419,
+    "history": [
+      {
+        "date": "2023-12-29",
+        "valid_to": "2024-01-01",
+        "value": "100.00",
+        "extended": true
+      },
+      {
+        "date": "2024-01-02",
+        "valid_to": "2024-01-02",
+        "value": "110.00",
+        "extended": false
+      },
+      {
+        "date": "2024-01-03",
+        "valid_to": "2024-01-03",
+        "value": "110.00",
+        "extended": false
+      },
+      {
+        "date": "2024-01-04",
+        "valid_to": "2024-01-07",
+        "value": "121.00",
+        "extended": true
+      },
+      {
+        "date": "2024-01-08",
+        "valid_to": "2024-01-08",
+        "value": "120.00",
+        "extended": false
+      }
+    ],
+    "dataset_fingerprint": "ab438180c60af78344c9934928fb9af708f0f752f4f13c2dd2a6b6a77603cbfa"
+  },
+  "methods": [
+    {
+      "method": "monte_carlo",
+      "paths": [
+        [120.0, 119.99492463506078, 127.34095678555308, 119.50598266890042],
+        [120.0, 136.09605636702437, 147.77012707661257, 152.08488959995083],
+        [120.0, 123.3625905910689, 131.3920737705948, 135.41844565166065]
+      ],
+      "displayed_paths": 3,
+      "total_paths": 8,
+      "bands": [
+        {
+          "step": 0,
+          "mean": 120.0,
+          "median": 120.0,
+          "p5": 120.0,
+          "p25": 120.0,
+          "p75": 120.0,
+          "p95": 120.0
+        },
+        {
+          "step": 1,
+          "mean": 125.61092952983954,
+          "median": 124.315857167138,
+          "p5": 120.4298513478386,
+          "p25": 122.83133603976532,
+          "p75": 126.45802846037355,
+          "p95": 134.11322012715593
+        },
+        {
+          "step": 2,
+          "mean": 131.4132970989022,
+          "median": 130.8595475424645,
+          "p5": 121.75161130317353,
+          "p25": 126.50032332901003,
+          "p75": 134.83708710734294,
+          "p95": 143.38586003087104
+        },
+        {
+          "step": 3,
+          "mean": 135.86808092724485,
+          "median": 136.5458805253689,
+          "p5": 120.64405290340972,
+          "p25": 131.12767805653772,
+          "p75": 141.2878498970251,
+          "p95": 149.88670190549374
+        }
+      ],
+      "terminal_values": [
+        119.50598266890042, 152.08488959995083, 135.41844565166065,
+        145.80435333007347, 137.67331539907715, 133.91770010526508,
+        122.75761191035558, 139.78234875267563
+      ],
+      "terminal_summary": {
+        "count": 8,
+        "mean": 135.86808092724485,
+        "median": 136.5458805253689,
+        "minimum": 119.50598266890042,
+        "maximum": 152.08488959995083,
+        "range": 32.57890693105041,
+        "population_variance": 102.98794642352343,
+        "sample_variance": 117.70051019831249,
+        "sample_std": 10.848986597757069,
+        "q1": 131.12767805653772,
+        "q3": 141.2878498970251,
+        "iqr": 10.16017184048738,
+        "coefficient_variation_pct": 7.984941366446859,
+        "percentiles": {
+          "p5": 120.64405290340972,
+          "p25": 131.12767805653772,
+          "p50": 136.5458805253689,
+          "p75": 141.2878498970251,
+          "p95": 149.88670190549374
+        }
+      },
+      "histogram": [
+        {
+          "lower": 119.50598266890042,
+          "upper": 127.65070940166302,
+          "right_closed": false,
+          "frequency": 2,
+          "relative_frequency": 0.25,
+          "cumulative_frequency": 2,
+          "cumulative_probability": 0.25
+        },
+        {
+          "lower": 127.65070940166302,
+          "upper": 135.79543613442561,
+          "right_closed": false,
+          "frequency": 2,
+          "relative_frequency": 0.25,
+          "cumulative_frequency": 4,
+          "cumulative_probability": 0.5
+        },
+        {
+          "lower": 135.79543613442561,
+          "upper": 143.94016286718823,
+          "right_closed": false,
+          "frequency": 2,
+          "relative_frequency": 0.25,
+          "cumulative_frequency": 6,
+          "cumulative_probability": 0.75
+        },
+        {
+          "lower": 143.94016286718823,
+          "upper": 152.08488959995083,
+          "right_closed": true,
+          "frequency": 2,
+          "relative_frequency": 0.25,
+          "cumulative_frequency": 8,
+          "cumulative_probability": 1.0
+        }
+      ],
+      "probabilities": [
+        {
+          "event": "above_initial",
+          "count": 7,
+          "probability": 0.875
+        },
+        {
+          "event": "below_initial",
+          "count": 1,
+          "probability": 0.125
+        },
+        {
+          "event": "equal_initial",
+          "count": 0,
+          "probability": 0.0
+        },
+        {
+          "event": "above_threshold",
+          "count": 7,
+          "probability": 0.875
+        },
+        {
+          "event": "below_threshold",
+          "count": 1,
+          "probability": 0.125
+        },
+        {
+          "event": "within_interval",
+          "count": null,
+          "probability": null
+        }
+      ],
+      "interpretation": "En 8 réplicas y 3 pasos, los percentiles 5 y 95 del precio terminal son 120,64 y 149,89 COP/USD. Describen el rango percentilar central nominal del 90 % de estos escenarios; los empates y la interpolación pueden alterar la fracción exacta contenida. No son una garantía de cobertura futura ni un intervalo de confianza de parámetros.",
+      "assumptions": "Rendimientos logarítmicos normales e independientes con media y desviación constantes. Modelo discreto r = μ + σZ y P siguiente = P × exp(r); μ es media logarítmica, sin ajuste de deriva de un movimiento browniano geométrico continuo."
+    },
+    {
+      "method": "bootstrap",
+      "paths": [
+        [120.0, 119.00826446280992, 130.9090909090909, 144.0],
+        [120.0, 132.0, 132.0, 132.0],
+        [120.0, 132.0, 132.0, 145.2]
+      ],
+      "displayed_paths": 3,
+      "total_paths": 8,
+      "bands": [
+        {
+          "step": 0,
+          "mean": 120.0,
+          "median": 120.0,
+          "p5": 120.0,
+          "p25": 120.0,
+          "p75": 120.0,
+          "p95": 120.0
+        },
+        {
+          "step": 1,
+          "mean": 127.25206611570248,
+          "median": 132.0,
+          "p5": 119.00826446280992,
+          "p25": 119.75206611570248,
+          "p75": 132.0,
+          "p95": 132.0
+        },
+        {
+          "step": 2,
+          "mean": 129.8305785123967,
+          "median": 130.9090909090909,
+          "p5": 123.17355371900827,
+          "p25": 130.9090909090909,
+          "p75": 132.0,
+          "p95": 132.0
+        },
+        {
+          "step": 3,
+          "mean": 137.7814903353596,
+          "median": 144.0,
+          "p5": 122.15559046513216,
+          "p25": 131.45679939894816,
+          "p75": 144.3,
+          "p95": 145.2
+        }
+      ],
+      "terminal_values": [
+        144.0, 132.0, 145.2, 118.02472508708422, 144.0, 144.0, 145.2,
+        129.82719759579263
+      ],
+      "terminal_summary": {
+        "count": 8,
+        "mean": 137.7814903353596,
+        "median": 144.0,
+        "minimum": 118.02472508708422,
+        "maximum": 145.2,
+        "range": 27.175274912915768,
+        "population_variance": 89.13804189955624,
+        "sample_variance": 101.87204788520714,
+        "sample_std": 10.0931683769373,
+        "q1": 131.45679939894816,
+        "q3": 144.3,
+        "iqr": 12.843200601051848,
+        "coefficient_variation_pct": 7.325489332689441,
+        "percentiles": {
+          "p5": 122.15559046513216,
+          "p25": 131.45679939894816,
+          "p50": 144.0,
+          "p75": 144.3,
+          "p95": 145.2
+        }
+      },
+      "histogram": [
+        {
+          "lower": 118.02472508708422,
+          "upper": 124.81854381531316,
+          "right_closed": false,
+          "frequency": 1,
+          "relative_frequency": 0.125,
+          "cumulative_frequency": 1,
+          "cumulative_probability": 0.125
+        },
+        {
+          "lower": 124.81854381531316,
+          "upper": 131.6123625435421,
+          "right_closed": false,
+          "frequency": 1,
+          "relative_frequency": 0.125,
+          "cumulative_frequency": 2,
+          "cumulative_probability": 0.25
+        },
+        {
+          "lower": 131.6123625435421,
+          "upper": 138.40618127177106,
+          "right_closed": false,
+          "frequency": 1,
+          "relative_frequency": 0.125,
+          "cumulative_frequency": 3,
+          "cumulative_probability": 0.375
+        },
+        {
+          "lower": 138.40618127177106,
+          "upper": 145.2,
+          "right_closed": true,
+          "frequency": 5,
+          "relative_frequency": 0.625,
+          "cumulative_frequency": 8,
+          "cumulative_probability": 1.0
+        }
+      ],
+      "probabilities": [
+        {
+          "event": "above_initial",
+          "count": 7,
+          "probability": 0.875
+        },
+        {
+          "event": "below_initial",
+          "count": 1,
+          "probability": 0.125
+        },
+        {
+          "event": "equal_initial",
+          "count": 0,
+          "probability": 0.0
+        },
+        {
+          "event": "above_threshold",
+          "count": 7,
+          "probability": 0.875
+        },
+        {
+          "event": "below_threshold",
+          "count": 1,
+          "probability": 0.125
+        },
+        {
+          "event": "within_interval",
+          "count": null,
+          "probability": null
+        }
+      ],
+      "interpretation": "En 8 réplicas y 3 pasos, los percentiles 5 y 95 del precio terminal son 122,16 y 145,20 COP/USD. Describen el rango percentilar central nominal del 90 % de estos escenarios; los empates y la interpolación pueden alterar la fracción exacta contenida. No son una garantía de cobertura futura ni un intervalo de confianza de parámetros.",
+      "assumptions": "Remuestreo independiente con reemplazo de rendimientos logarítmicos históricos. Conserva su distribución empírica, pero pierde dependencia temporal y agrupamiento de volatilidad."
+    }
+  ],
+  "created_at": "2026-11-05T09:00:00-05:00",
+  "model_version": "simulation-1.0.0",
+  "numpy_version": "2.5.4",
+  "python_version": "3.13.13",
+  "machine": "AMD64",
+  "bit_generator": "PCG64",
+  "source": "Muestra sintetica exclusiva para pruebas",
+  "numeric_fingerprint": "2887d9126213e850103ac54f93e17b44088afee1998208c68be980dc8bed04a6",
+  "convention": "Entrenamiento con registros originales que intersectan la ventana y comienzan a más tardar en su fecha final, la cual no supera el corte. Un rendimiento por par de vigencias contiguas; se conservan precios iguales y se excluyen huecos. Media y desviación logarítmicas estimadas con ddof=1 para la desviación. Cada método reinicia su generador con la misma semilla; esto no empareja trayectorias. Todas las réplicas se usan para distribuciones, percentiles lineales y probabilidades terminales. Solo las primeras trayectorias indicadas se dibujan. Se conservan las matrices completas y una instantánea inmutable del entrenamiento en SQLite. La reproducción exacta requiere el mismo entorno numérico y versión del algoritmo.",
+  "warnings": [
+    "Escenarios simulados bajo supuestos del modelo; no son predicciones garantizadas ni recomendaciones de inversión.",
+    "Un paso es una transición del modelo, sin equivalencia automática a un día calendario o de mercado.",
+    "Bandas marginales por paso: no son trayectorias individuales ni intervalos de confianza de parámetros.",
+    "Pocas réplicas: los percentiles y probabilidades empíricos pueden ser inestables; una réplica no permite desviación muestral.",
+    "La calibración usa menos de 30 rendimientos; los parámetros pueden ser poco representativos."
+  ]
+}

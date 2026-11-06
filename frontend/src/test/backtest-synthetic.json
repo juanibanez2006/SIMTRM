@@ -1,0 +1,277 @@
+{
+  "id": "00000000-0000-4000-8000-000000000005",
+  "experiment_id": "00000000-0000-4000-8000-000000000004",
+  "request": {
+    "training_start": "2024-01-01",
+    "cutoff_date": "2024-01-03",
+    "method": "both",
+    "horizon": 2,
+    "replicas": 20,
+    "seed": 2026,
+    "uniform_count": 250,
+    "alpha": 0.05
+  },
+  "status": "complete",
+  "evaluated_steps": 2,
+  "stopped_at_gap": false,
+  "initial_price": 110.0,
+  "observations": [
+    {
+      "date": "2024-01-04",
+      "value": 121.0
+    },
+    {
+      "date": "2024-01-08",
+      "value": 120.0
+    }
+  ],
+  "baseline": {
+    "mae": 10.5,
+    "rmse": 10.51189802081432,
+    "mape": 0.08712121212121213,
+    "coverage": null,
+    "terminal_absolute_error": 10.0,
+    "terminal_relative_error": 0.08333333333333333
+  },
+  "methods": [
+    {
+      "method": "monte_carlo",
+      "metrics": {
+        "mae": 4.9281382999301115,
+        "rmse": 5.632773036104696,
+        "mape": 0.040804180558525444,
+        "coverage": 1.0,
+        "terminal_absolute_error": 2.200211436352191,
+        "terminal_relative_error": 0.018335095302934926
+      },
+      "points": [
+        {
+          "step": 1,
+          "date": "2024-01-04",
+          "actual": 121.0,
+          "predicted_mean": 113.34393483649197,
+          "predicted_median": 113.13766212404698,
+          "p5": 105.95784768962571,
+          "p95": 121.15238217210955,
+          "error": -7.656065163508032,
+          "absolute_error": 7.656065163508032,
+          "relative_error": 0.06327326581411596,
+          "covered": true
+        },
+        {
+          "step": 2,
+          "date": "2024-01-08",
+          "actual": 120.0,
+          "predicted_mean": 122.20021143635219,
+          "predicted_median": 120.35999802683827,
+          "p5": 112.52694342761599,
+          "p95": 138.4296442504475,
+          "error": 2.200211436352191,
+          "absolute_error": 2.200211436352191,
+          "relative_error": 0.018335095302934926,
+          "covered": true
+        }
+      ]
+    },
+    {
+      "method": "bootstrap",
+      "metrics": {
+        "mae": 3.414999999999999,
+        "rmse": 4.001181075632544,
+        "mape": 0.028268939393939388,
+        "coverage": 1.0,
+        "terminal_absolute_error": 1.3299999999999983,
+        "terminal_relative_error": 0.011083333333333318
+      },
+      "points": [
+        {
+          "step": 1,
+          "date": "2024-01-04",
+          "actual": 121.0,
+          "predicted_mean": 115.5,
+          "predicted_median": 115.5,
+          "p5": 110.0,
+          "p95": 121.00000000000001,
+          "error": -5.5,
+          "absolute_error": 5.5,
+          "relative_error": 0.045454545454545456,
+          "covered": true
+        },
+        {
+          "step": 2,
+          "date": "2024-01-08",
+          "actual": 120.0,
+          "predicted_mean": 121.33,
+          "predicted_median": 121.00000000000001,
+          "p5": 110.0,
+          "p95": 133.1,
+          "error": 1.3299999999999983,
+          "absolute_error": 1.3299999999999983,
+          "relative_error": 0.011083333333333318,
+          "covered": true
+        }
+      ]
+    }
+  ],
+  "generator_diagnostics": {
+    "seed": 2026,
+    "count": 250,
+    "mean": 0.499458103537575,
+    "sample_variance": 0.07412361830077213,
+    "expected_mean": 0.5,
+    "expected_variance": 0.08333333333333333,
+    "d_plus": 0.053170203446450515,
+    "d_minus": 0.04935319182304865,
+    "uniforms": [
+      0.17893481367543618, 0.6399131657151546, 0.4672684011434851,
+      0.37050052710804804, 0.3549173343096512, 0.790518245853265,
+      0.9051438366771739, 0.17735319182304865, 0.652784802685132,
+      0.29830276735556926, 0.9669622001623905, 0.9198501605372782,
+      0.6358708041446514, 0.7527320970790866, 0.5151536963223518,
+      0.82589525837557, 0.4483805454001032, 0.33881245331376186,
+      0.27789921550015906, 0.22633305684340344, 0.5258168433452484,
+      0.43091206068443144, 0.6631806204725954, 0.012840482366806572,
+      0.4477019015387208, 0.3651808011323914, 0.19539759987155403,
+      0.5948658710060528, 0.43531315595064457, 0.2999915037451498,
+      0.20941612123621955, 0.8746240571921795, 0.7974623155214327,
+      0.606709676684979, 0.34510057866729216, 0.9468197909796484,
+      0.5633773745025455, 0.43276273961995204, 0.9004495990042221,
+      0.3193418039018624, 0.6959948701337834, 0.3138203272623701,
+      0.2615530463118, 0.7008408895008554, 0.22789197890735768,
+      0.4931103229848808, 0.5800284530205562, 0.18890636475445843,
+      0.7312406583584447, 0.5484830646246303, 0.6215032596259377,
+      0.3721443167968299, 0.42019325992063383, 0.49482967791705623,
+      0.46997091240616984, 0.6756392228496231, 0.5771775044961992,
+      0.4162706429924663, 0.0018023536068190182, 0.7940310607755042,
+      0.5193842211443356, 0.32654466381127, 0.49995502241119394,
+      0.09344593349461805, 0.9047040725533528, 0.9897361675845034,
+      0.05873521751558297, 0.3582312185913814, 0.7300645778190835,
+      0.3142381312178827, 0.5670497583644489, 0.4165709623150299,
+      0.7742121576308749, 0.9584644009640338, 0.8883954263166767,
+      0.6209354652000495, 0.1602743126680698, 0.9470620833116628,
+      0.023632428671776062, 0.29770945642086144, 0.2816134931005958,
+      0.6718259817227047, 0.48736306607251145, 0.09288854875744723,
+      0.012857887744930352, 0.6043157467736379, 0.4914833323409261,
+      0.6013821213404011, 0.5640238638655345, 0.89045910829968,
+      0.9183968578705968, 0.188257161102365, 0.9421208694705342,
+      0.7877266263227836, 0.6390262522229664, 0.6596072674909493,
+      0.5460602299006425, 0.9172632996428407, 0.23326320620013874,
+      0.5993159922695809, 0.8142430618716505, 0.13476145162112996,
+      0.615508274358867, 0.40283347552957394, 0.7660363414662829,
+      0.06771436062054059, 0.6068143810342034, 0.8570786899866468,
+      0.6283478623630906, 0.32133769545352076, 0.6557960559218892,
+      0.33815284273601076, 0.6685927884100901, 0.1283444014420535,
+      0.2799917441958927, 0.032718378196915365, 0.08390938896269085,
+      0.5547696198165065, 0.23169822139230722, 0.5160825876377318,
+      0.659569533072841, 0.8811861793495235, 0.35506101458853867,
+      0.31867896643874516, 0.313666741563808, 0.11784964452439528,
+      0.6631833646572645, 0.8196545814372104, 0.47300486086298876,
+      0.5582973969485474, 0.9584801136956184, 0.6989151716524886,
+      0.7450348866476518, 0.8894983573045284, 0.2157905760841189,
+      0.6501660583206906, 0.7173945053263936, 0.8422279297235258,
+      0.34378554600189437, 0.6887947057130477, 0.6044006058026058,
+      0.4093610338226653, 0.10168575708216332, 0.35304843378314044,
+      0.9634847481204788, 0.21652350161279854, 0.11363799358817561,
+      0.36767942473700777, 0.1009807921059821, 0.2671989318362714,
+      0.9144561221029246, 0.3187820814455795, 0.5858895145468258,
+      0.23874477955495155, 0.6679799243985048, 0.12765638766488252,
+      0.7898093832755049, 0.4229460447715928, 0.1836603870914313,
+      0.758249565648491, 0.5542825390272328, 0.4381450103309691,
+      0.24062604181377323, 0.7813658931947177, 0.36528505670346056,
+      0.043090690634595696, 0.96536926984468, 0.03046480812489505,
+      0.12046907762387415, 0.46581253099537934, 0.20785494157193374,
+      0.3351350375860954, 0.5675652419333407, 0.9578419522589532,
+      0.9363122242578448, 0.07389597584523522, 0.8533136562599993,
+      0.16782365513224518, 0.8114328725032335, 0.2963472178481993,
+      0.7178343572828981, 0.7187932050275267, 0.850551259756355,
+      0.9796258488514935, 0.2754808528630017, 0.6283084586743911,
+      0.7392607956370342, 0.07962933757560675, 0.6629613377688489,
+      0.32151551530824796, 0.16146904266095086, 0.5494715578347591,
+      0.46188359707756765, 0.5770798329599061, 0.6419175904033568,
+      0.49866886134850175, 0.9051507074391362, 0.17791419839100442,
+      0.28879164900942544, 0.35622164118008504, 0.774382020078661,
+      0.6520981168659544, 0.2064226800628115, 0.7444418905939161,
+      0.7715370379067442, 0.7702414655724522, 0.07837290492218618,
+      0.21213914882577256, 0.8953850271326209, 0.8794320598717107,
+      0.20557265759667276, 0.5513756583147158, 0.26268325844768114,
+      0.41628477156613086, 0.02094484416240605, 0.28176023673675177,
+      0.27068090144591017, 0.9191304909520741, 0.5879702166328254,
+      0.1775164934316158, 0.4275645425413398, 0.49293616218995406,
+      0.6373601174260564, 0.5324478498483587, 0.42099270734434335,
+      0.3107930117753044, 0.5749995088018878, 0.9758320136707291,
+      0.5529869643862163, 0.8870121467184444, 0.015272435183649069,
+      0.2030974028229966, 0.8647679793230478, 0.5694728969947693,
+      0.4875580786370386, 0.36880428868132864, 0.29526571288950065,
+      0.6788297965535495, 0.3657350555800003, 0.43523470740661496,
+      0.7768482879275864, 0.9461829725207951, 0.9936568534146455,
+      0.4849152370071329, 0.1381690550005069, 0.024923602435105274,
+      0.49465670555808827, 0.0763549914853281, 0.11771307998234448,
+      0.23483907948984994
+    ],
+    "frequencies": [19, 21, 30, 27, 31, 26, 32, 23, 17, 24],
+    "expected_frequency": 25.0,
+    "series_frequencies": [
+      1, 9, 4, 4, 1, 3, 4, 6, 9, 3, 5, 8, 9, 2, 6, 5, 7, 6, 6, 7, 7, 4, 2, 3, 4
+    ],
+    "series_pairs": 125,
+    "series_expected_frequency": 5.0,
+    "tests": [
+      {
+        "name": "Kolmogorov–Smirnov U(0,1)",
+        "hypothesis": "Distribución uniforme continua completamente especificada",
+        "statistic": 0.053170203446450515,
+        "p_value": 0.4637570671313629,
+        "alpha": 0.05,
+        "decision": "do_not_reject",
+        "detail": "D+ = max(i/n − U(i)); D− = max(U(i) − (i−1)/n). Se usan los uniformes originales ordenados."
+      },
+      {
+        "name": "Chi-cuadrado de uniformidad",
+        "hypothesis": "Diez intervalos de igual probabilidad",
+        "statistic": 9.44,
+        "p_value": 0.39768828323052924,
+        "alpha": 0.05,
+        "decision": "do_not_reject",
+        "detail": "10 clases; esperados n/10, al menos 25 por clase; 9 grados de libertad."
+      },
+      {
+        "name": "Chi-cuadrado de series",
+        "hypothesis": "Pares no solapados uniformes en el cuadrado unidad",
+        "statistic": 27.999999999999996,
+        "p_value": 0.2600399224594338,
+        "alpha": 0.05,
+        "decision": "do_not_reject",
+        "detail": "25 celdas de igual probabilidad, 24 grados de libertad. Esperados ≥ 5; considera uniformidad conjunta e independencia de pares."
+      }
+    ],
+    "convention": "Muestra diagnóstica U[0,1) de un generador separado, reiniciado con la semilla. No consume las innovaciones de las simulaciones ni representa TRM oficial. No rechazar H0 no demuestra uniformidad o independencia perfectas. Con alpha=5 % puede rechazarse un generador correcto por error tipo I. No valida el modelo financiero."
+  },
+  "model_diagnostics": {
+    "return_count": 2,
+    "normality": {
+      "name": "D’Agostino–Pearson",
+      "hypothesis": "Los rendimientos de entrenamiento proceden de una distribución normal",
+      "statistic": null,
+      "p_value": null,
+      "alpha": 0.05,
+      "decision": "not_applicable",
+      "detail": "Se requieren al menos 20 rendimientos no constantes para esta evaluación asintótica."
+    },
+    "lag_one_correlation": null,
+    "correlation_pairs": 1,
+    "outlier_count": 0,
+    "convention": "Diagnóstico solo del entrenamiento. La correlación de rezago 1 es descriptiva y no cruza huecos; no prueba independencia general. Los extremos de Tukey se conservan. No se aplica K-S clásico a una normal ajustada con la misma muestra. Un valor p alto no demuestra que el modelo sea correcto."
+  },
+  "training_fingerprint": "35e2622e783eaf8eded80f3a72e2154288203613dd249cfe4da0a72b566443b1",
+  "evaluation_fingerprint": "5e1f5ffc6cd4d2c26739e83c041c2f97d039730dbef042dc30d451f76b0d67b7",
+  "created_at": "2026-11-05T09:00:00-05:00",
+  "model_version": "backtest-1.0.0",
+  "scipy_version": "1.18.1",
+  "source": "Muestra sintetica exclusiva para pruebas",
+  "interpretation": "Con corte 2024-01-03, se calibró exclusivamente con 2 rendimientos previos y se evaluaron 2 de 2 pasos con datos posteriores no usados en calibración. Los errores de la media simulada se comparan con la persistencia del precio inicial; la evaluación es descriptiva y debe repetirse en otros cortes.",
+  "convention": "Entrenamiento hasta el corte inclusive; precio inicial oficial vigente en el corte. Evaluación con los primeros registros de vigencia nuevos posteriores al corte, sin repetir días de una vigencia extendida. Un paso por transición contigua. MAE = media |predicción − real|; RMSE = raíz de media del error al cuadrado; MAPE = media del error absoluto / valor real. Predicción puntual: media de todas las réplicas. Referencia de persistencia: mantener P0 en todos los pasos. Cobertura: conteo P5 ≤ real ≤ P95 / pasos evaluados. Solo una evaluación completa permite error terminal del horizonte. Se guardan entrenamiento y evaluación.",
+  "warnings": [
+    "Una sola ventana retrospectiva no demuestra capacidad predictiva general ni calibración perfecta.",
+    "La cobertura es puntual por observación dentro de bandas marginales P5–P95; no es cobertura simultánea de una trayectoria."
+  ]
+}
