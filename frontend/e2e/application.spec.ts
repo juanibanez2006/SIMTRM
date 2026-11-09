@@ -59,7 +59,7 @@ test("refresca estado local y vigencia al cambiar el día sin perder filtros", a
   });
   await page.goto("/");
   await expect(page.getByText("Vigente hoy", { exact: true })).toBeVisible();
-  await page.getByLabel(/^Año/).selectOption(String(years[1] ?? years[0]));
+  await page.getByLabel(/^Año/).filter({ visible: true }).selectOption(String(years[1] ?? years[0]));
   await expect(page.locator(".js-plotly-plot .main-svg").first()).toBeVisible();
   const update = page.waitForResponse((response) =>
     response.url().includes(`/trm/series?year=${years[1] ?? years[0]}`),
@@ -70,7 +70,7 @@ test("refresca estado local y vigencia al cambiar el día sin perder filtros", a
   await expect(
     page.getByText("Último dato · desactualizado", { exact: true }),
   ).toBeVisible();
-  await expect(page.getByLabel(/^Año/)).toHaveValue(
+  await expect(page.getByLabel(/^Año/).filter({ visible: true })).toHaveValue(
     String(years[1] ?? years[0]),
   );
   await expect(page.locator(".update-warning")).toContainText(
@@ -92,7 +92,18 @@ async function navigate(page: Page, name: string) {
 }
 
 async function accessible(page: Page) {
-  await expect(page.locator(".loading")).toHaveCount(0);
+  await expect(page.locator(".loading:visible")).toHaveCount(0);
+  await expect.poll(() => page.locator(".js-plotly-plot:visible").evaluateAll((plots) =>
+    plots.every((plot) => {
+      const bounds = plot.getBoundingClientRect();
+      const svg = plot.querySelector(".main-svg")?.getBoundingClientRect();
+      const title = plot.querySelector(".xtitle")?.getBoundingClientRect();
+      return svg && svg.height <= bounds.height + 1 && (!title || (
+        title.left >= bounds.left - 1 && title.right <= bounds.right + 1 &&
+        title.bottom <= bounds.bottom + 1
+      ));
+    }),
+  ), { message: "Los gráficos y sus títulos deben caber sin invadir el contenido siguiente" }).toBe(true);
   const audit = await new AxeBuilder({ page })
     .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
     .analyze();
@@ -108,11 +119,12 @@ async function accessible(page: Page) {
 }
 
 async function xlsx(page: Page, button: string) {
-  const downloaded = page.waitForEvent("download");
+  const downloaded = page.waitForEvent("download", { timeout: 60_000 });
   await page.getByRole("button", { name: button, exact: true }).click();
   const download = await downloaded;
   expect(download.suggestedFilename()).toMatch(/^SIMTRM_.*\.xlsx$/);
   expect(await download.failure()).toBeNull();
+  await download.saveAs(test.info().outputPath(download.suggestedFilename()));
   const stream = await download.createReadStream();
   if (!stream) throw new Error("No se recibió el contenido de Excel");
   let size = 0;
@@ -140,11 +152,11 @@ test("histórico real: filtros, paginación eficiente y descarga Excel", async (
   });
   await page.goto("/");
   await expect(page.locator(".js-plotly-plot .main-svg").first()).toBeVisible();
-  await page.getByLabel(/^Año/).selectOption(String(years[1] ?? years[0]));
+  await page.getByLabel(/^Año/).filter({ visible: true }).selectOption(String(years[1] ?? years[0]));
   await expect(page.locator(".pagination")).toContainText("Página 1");
   const callsBefore = seriesCalls;
   await page
-    .locator(".js-plotly-plot")
+    .locator(".js-plotly-plot:visible")
     .evaluate((element) => element.setAttribute("data-retained", "true"));
   await page.getByRole("button", { name: "Siguiente →", exact: true }).click();
   await expect(page.locator(".pagination")).toContainText("Página 2");
@@ -155,6 +167,43 @@ test("histórico real: filtros, paginación eficiente y descarga Excel", async (
   await xlsx(page, "Excel del histórico seleccionado");
   await accessible(page);
   expect(errors).toEqual([]);
+});
+
+test("conserva controles al navegar y aplica transferencias explícitas de periodo", async ({ page }) => {
+  await page.goto("/#statistics");
+  await page.getByLabel(/^Variable de análisis/).selectOption("log_return");
+  await page.getByLabel("Clases del histograma").selectOption("10");
+  await page.getByLabel("Ventana de volatilidad móvil").selectOption("5");
+  await navigate(page, "Comparar periodos");
+  await page.getByLabel("Tipo de periodo A").selectOption("range");
+  await page.getByLabel("Inicio del periodo A").fill("2024-02-01");
+  await page.getByLabel("Fin del periodo A").fill("2024-02-29");
+  await navigate(page, "Análisis estadístico");
+  await expect(page.getByLabel(/^Variable de análisis/)).toHaveValue("log_return");
+  await expect(page.getByLabel("Clases del histograma")).toHaveValue("10");
+  await expect(page.getByLabel("Ventana de volatilidad móvil")).toHaveValue("5");
+  await navigate(page, "Comparar periodos");
+  await expect(page.getByLabel("Inicio del periodo A")).toHaveValue("2024-02-01");
+  await expect(page.getByLabel("Fin del periodo A")).toHaveValue("2024-02-29");
+  await navigate(page, "Simulador");
+  await page.getByLabel("Horizonte en pasos", { exact: true }).fill("7");
+  await navigate(page, "Histórico de TRM");
+  await page.getByLabel("Desde", { exact: true }).fill("2025-01-01");
+  const filtered = page.waitForResponse((response) =>
+    response.url().includes("/trm/series?start=2025-01-01&end=2025-12-31"),
+  );
+  await page.getByLabel("Hasta", { exact: true }).fill("2025-12-31");
+  await filtered;
+  await page.getByRole("button", { name: "Usar como periodo A", exact: true }).click();
+  await expect(page.getByLabel("Inicio del periodo A")).toHaveValue("2025-01-01");
+  await expect(page.getByLabel("Fin del periodo A")).toHaveValue("2025-12-31");
+  await navigate(page, "Simulador");
+  await expect(page.getByLabel("Horizonte en pasos", { exact: true })).toHaveValue("7");
+  await navigate(page, "Histórico de TRM");
+  await page.getByRole("button", { name: "Simular con este periodo", exact: true }).click();
+  await expect(page.getByLabel("Inicio del entrenamiento", { exact: true })).toHaveValue("2025-01-01");
+  await expect(page.getByLabel("Fin del entrenamiento", { exact: true })).toHaveValue("2025-12-31");
+  await expect(page.getByLabel("Fecha de corte", { exact: true })).toHaveValue("2025-12-31");
 });
 
 test("navegación por teclado, historial y recuperación del backend", async ({
@@ -208,7 +257,7 @@ test("todos los módulos: accesibilidad y diseño a 1280, 768, 390 y 320 píxele
     });
     for (const name of pages) {
       if (name !== "Vista general") await navigate(page, name);
-      await expect(page.locator(".loading")).toHaveCount(0);
+      await expect(page.locator(".loading:visible")).toHaveCount(0);
       if (width !== 320) await accessible(page);
       expect(
         await page.evaluate(
@@ -229,6 +278,7 @@ test("Montecarlo y bootstrap: semilla, reproducción, gráficos y Excel", async 
   page,
   request,
 }) => {
+  test.setTimeout(120_000);
   const years = (await (
     await request.get("/api/v1/trm/years")
   ).json()) as number[];
@@ -269,12 +319,16 @@ test("Montecarlo y bootstrap: semilla, reproducción, gráficos y Excel", async 
     "monte_carlo",
     "bootstrap",
   ]);
-  await expect(page.locator(".js-plotly-plot")).toHaveCount(3);
+  await expect(page.locator(".js-plotly-plot:visible")).toHaveCount(3);
   await page
     .getByRole("button", { name: "Bootstrap histórico", exact: true })
     .click();
   await accessible(page);
   await xlsx(page, "Excel del experimento completo");
+  await navigate(page, "Metodología y fuentes");
+  await navigate(page, "Simulador");
+  await expect(page.getByLabel("Horizonte en pasos", { exact: true })).toHaveValue("5");
+  await expect(page.getByRole("heading", { name: "Resultado del experimento", exact: true })).toBeVisible();
   const replayed = page.waitForResponse((response) =>
     response.url().endsWith(`/simulations/${original.id}/replay`),
   );
@@ -291,6 +345,19 @@ test("Montecarlo y bootstrap: semilla, reproducción, gráficos y Excel", async 
   expect(changed.methods[0].terminal_values).not.toEqual(
     original.methods[0].terminal_values,
   );
+  await page.getByLabel("Identificador de experimento guardado").fill(original.id);
+  const recovered = page.waitForResponse((response) =>
+    response.url().endsWith(`/simulations/${original.id}`),
+  );
+  await page.getByRole("button", { name: "Abrir experimento", exact: true }).click();
+  expect((await (await recovered).json()).numeric_fingerprint).toBe(original.numeric_fingerprint);
+  await expect(page.locator(".simulation-message")).toHaveText("Experimento recuperado.");
+  await navigate(page, "Exportaciones");
+  await xlsx(page, "Descargar todo el histórico");
+  await page.getByLabel("Identificador del resultado", { exact: true }).fill(original.id);
+  await page.getByLabel("Incluir todas las trayectorias guardadas").uncheck();
+  await xlsx(page, "Descargar resultado guardado");
+  await navigate(page, "Simulador");
   await page.setViewportSize({ width: 390, height: 844 });
   await accessible(page);
   expect(
@@ -304,12 +371,13 @@ test("comparación, análisis y validación retrospectiva con datos locales", as
   page,
   request,
 }) => {
+  test.setTimeout(120_000);
   await page.goto("/#comparison");
-  await expect(page.locator(".js-plotly-plot")).toHaveCount(2);
+  await expect(page.locator(".js-plotly-plot:visible")).toHaveCount(2);
   await xlsx(page, "Excel de la comparación aplicada");
   await navigate(page, "Análisis estadístico");
   await page.getByLabel(/^Variable de análisis/).selectOption("log_return");
-  await expect(page.locator(".js-plotly-plot")).toHaveCount(5);
+  await expect(page.locator(".js-plotly-plot:visible")).toHaveCount(5);
   await xlsx(page, "Excel del análisis estadístico");
   await navigate(page, "Validación retrospectiva");
   await page.getByLabel("Pasos a evaluar", { exact: true }).fill("5");
@@ -337,6 +405,10 @@ test("comparación, análisis y validación retrospectiva con datos locales", as
     page.getByRole("heading", { name: "Resultado retrospectivo", exact: true }),
   ).toBeVisible();
   await xlsx(page, "Excel de la validación");
+  await navigate(page, "Metodología y fuentes");
+  await navigate(page, "Validación retrospectiva");
+  await expect(page.getByLabel("Pasos a evaluar", { exact: true })).toHaveValue("5");
+  await expect(page.getByRole("heading", { name: "Resultado retrospectivo", exact: true })).toBeVisible();
   await accessible(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await accessible(page);

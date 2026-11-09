@@ -20,8 +20,8 @@ export function comparisonPlot(
       title: {
         text:
           comparison.alignment === "observation"
-            ? "Número de observación (desde 1)"
-            : "Días calendario desde el inicio solicitado (desde 0)",
+            ? "Observación (desde 1)"
+            : "Días desde el inicio (desde 0)",
       },
       showgrid: false,
       zeroline: false,

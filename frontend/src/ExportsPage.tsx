@@ -93,7 +93,7 @@ export default function ExportsPage({
             <input
               value={id}
               onChange={(event) => setId(event.target.value)}
-              placeholder="UUID del resultado"
+              placeholder="Pegue el identificador del resultado"
             />
           </label>
         </div>

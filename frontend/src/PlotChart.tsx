@@ -120,6 +120,33 @@ export default function PlotChart({
               }
             : effectiveLayout;
         await plotly.react(element, data, persistentLayout, {
+          locale: "es-CO",
+          locales: {
+            "es-CO": {
+              dictionary: {
+                Zoom: "Ampliar",
+                Pan: "Desplazar",
+                "Zoom in": "Acercar",
+                "Zoom out": "Alejar",
+                Autoscale: "Ajustar escala",
+                "Reset axes": "Restablecer ejes",
+                "Show closest data on hover": "Mostrar el dato más cercano",
+                "Compare data on hover": "Comparar datos al señalar",
+                "Toggle Spike Lines": "Mostrar u ocultar líneas de referencia",
+                "Double-click on legend to isolate one trace": "Haga doble clic en la leyenda para aislar una serie",
+              },
+              format: {
+                days: ["domingo", "lunes", "martes", "miércoles", "jueves", "viernes", "sábado"],
+                shortDays: ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"],
+                months: ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"],
+                shortMonths: ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"],
+                date: "%d/%m/%Y",
+                decimal: ",",
+                thousands: ".",
+                grouping: [3],
+              },
+            },
+          },
           responsive: true,
           displaylogo: false,
           scrollZoom: false,
@@ -287,6 +314,7 @@ export default function PlotChart({
       <div
         ref={container}
         className={`${className}${temporal ? " temporal-chart" : ""}`}
+        style={{ height: effectiveLayout.height }}
         role="group"
         aria-label={label}
         hidden={failedData === data}

@@ -73,6 +73,7 @@ Desde PowerShell, en una terminal de Visual Studio Code:
 git clone https://github.com/juanibanez2006/SIMTRM.git
 cd SIMTRM
 py -3.13 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
 .\.venv\Scripts\python.exe -m pip install -r backend\requirements.lock
 npm.cmd --prefix frontend ci
 if (-not (Test-Path backend\.env)) { Copy-Item backend\.env.example backend\.env }

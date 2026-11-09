@@ -155,7 +155,7 @@ export default function SimulationPage({
         savedId.trim(),
       )
     ) {
-      setError("Indique un identificador UUID de experimento válido.");
+      setError("Pegue el identificador completo del experimento guardado.");
       return;
     }
     setBusy(true);
@@ -457,7 +457,7 @@ export default function SimulationPage({
           <input
             value={savedId}
             onChange={(event) => setSavedId(event.target.value)}
-            placeholder="UUID del experimento"
+            placeholder="Pegue el identificador del experimento"
           />
         </label>
         <button disabled={busy} onClick={() => void run("load")}>

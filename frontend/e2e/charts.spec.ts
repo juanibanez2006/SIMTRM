@@ -87,6 +87,11 @@ test("rueda protegida, arrastre horizontal, selección y vista persistente", asy
   await expect(page.locator(".point-inspector")).toContainText(
     "Anterior comparable",
   );
+  const selected = await page.getByLabel("Observación histórica").inputValue();
+  await page.getByLabel("Observación histórica").focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect(page.getByLabel("Observación histórica")).toHaveValue(String(Number(selected) - 1));
+  await expect(page.locator(".point-inspector")).toContainText("Vigencia:");
 });
 
 test("periodos rápidos actualizan cálculos y transfieren fechas a otros módulos", async ({
@@ -100,10 +105,12 @@ test("periodos rápidos actualizan cálculos y transfieren fechas a otros módul
   const response = await result;
   const data = await response.json();
   const parameters = new URL(response.url()).searchParams;
+  await expect(page.locator(".chart-panel .section-heading p").first()).toContainText("Desde");
+  await expect(page.locator(".chart-panel .section-heading p").first()).not.toContainText("Todo el histórico");
   await expect(page.getByLabel("Desde", { exact: true })).toHaveValue(
     parameters.get("start")!,
   );
-  await expect(page.getByLabel(/^Año/)).toHaveValue("");
+  await expect(page.getByLabel(/^Año/).filter({ visible: true })).toHaveValue("");
   await expect(page.locator(".metric-grid .metric strong").first()).toHaveText(
     new Intl.NumberFormat("es-CO", {
       minimumFractionDigits: 2,

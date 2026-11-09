@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { Activity, useEffect, useRef, useState } from "react";
 import { request, queryString } from "./api";
 import { money, number, shortDate, timestamp } from "./format";
 import HistoryChart from "./HistoryChart";
@@ -91,9 +91,15 @@ export default function App() {
   const [syncing, setSyncing] = useState(false);
   const [syncMode, setSyncMode] = useState("incremental");
   const [adminToken, setAdminToken] = useState("");
-  const [sharedPeriod, setSharedPeriod] = useState<{
+  const [comparisonPeriod, setComparisonPeriod] = useState<{
     start: string;
     end: string;
+    revision: number;
+  } | null>(null);
+  const [simulationPeriod, setSimulationPeriod] = useState<{
+    start: string;
+    end: string;
+    revision: number;
   } | null>(null);
   const [syncError, setSyncError] = useState("");
   const [syncMessage, setSyncMessage] = useState("");
@@ -222,9 +228,13 @@ export default function App() {
 
   const currentRecord = latest?.record;
   const hasResults = !invalidRange && series && series.count > 0;
-  const periodLabel = filters.year
-    ? `Año ${filters.year}${filters.month ? ` · ${monthNames[Number(filters.month) - 1]}` : ""}`
-    : "Todo el histórico";
+  const periodLabel = [
+    filters.year
+      ? `Año ${filters.year}${filters.month ? ` · ${monthNames[Number(filters.month) - 1]}` : ""}`
+      : "",
+    filters.start ? `Desde ${shortDate(filters.start)}` : "",
+    filters.end ? `Hasta ${shortDate(filters.end)}` : "",
+  ].filter(Boolean).join(" · ") || "Todo el histórico";
   const latestLabel =
     latest?.state === "current"
       ? "Vigente hoy"
@@ -655,13 +665,14 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => {
-                        setSharedPeriod(
-                          selectedBounds(
+                        setComparisonPeriod((previous) => ({
+                          ...selectedBounds(
                             filters,
                             status.first!.valid_from,
                             lastDate,
                           ),
-                        );
+                          revision: (previous?.revision ?? 0) + 1,
+                        }));
                         navigate("comparison");
                       }}
                     >
@@ -670,13 +681,14 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => {
-                        setSharedPeriod(
-                          selectedBounds(
+                        setSimulationPeriod((previous) => ({
+                          ...selectedBounds(
                             filters,
                             status.first!.valid_from,
                             lastDate,
                           ),
-                        );
+                          revision: (previous?.revision ?? 0) + 1,
+                        }));
                         navigate("simulation");
                       }}
                     >
@@ -698,12 +710,6 @@ export default function App() {
               )}
               {invalidRange && (
                 <ErrorBox message="La fecha inicial debe ser anterior o igual a la final." />
-              )}
-              {page === "statistics" && !invalidRange && hasMetadata && (
-                <StatisticsPage
-                  periodQuery={filterQuery}
-                  refresh={dataRefresh}
-                />
               )}
               {historicalPage && error && (
                 <ErrorBox
@@ -932,12 +938,19 @@ export default function App() {
             </>
           )}
 
-          {page === "comparison" &&
-            (status ? (
+          <Activity mode={page === "statistics" && !invalidRange ? "visible" : "hidden"}>
+            {hasMetadata && (
+              <StatisticsPage periodQuery={filterQuery} refresh={dataRefresh} />
+            )}
+          </Activity>
+
+          <Activity mode={page === "comparison" ? "visible" : "hidden"}>
+            {status ? (
               <ComparisonPage
+                key={comparisonPeriod?.revision ?? 0}
                 years={years}
                 refresh={dataRefresh}
-                initialPeriod={sharedPeriod}
+                initialPeriod={comparisonPeriod}
               />
             ) : (
               !metadataError && (
@@ -945,14 +958,16 @@ export default function App() {
                   Consultando años disponibles…
                 </div>
               )
-            ))}
+            )}
+          </Activity>
 
-          {page === "simulation" &&
-            (status && latest ? (
+          <Activity mode={page === "simulation" ? "visible" : "hidden"}>
+            {status && latest ? (
               <SimulationPage
+                key={simulationPeriod?.revision ?? 0}
                 latest={latest}
                 status={status}
-                initialPeriod={sharedPeriod}
+                initialPeriod={simulationPeriod}
                 prepareData={() => navigate("source")}
               />
             ) : (
@@ -961,10 +976,11 @@ export default function App() {
                   Consultando datos del simulador…
                 </div>
               )
-            ))}
+            )}
+          </Activity>
 
-          {page === "backtest" &&
-            (status && latest ? (
+          <Activity mode={page === "backtest" ? "visible" : "hidden"}>
+            {status && latest ? (
               <BacktestPage latest={latest} status={status} />
             ) : (
               !metadataError && (
@@ -972,8 +988,11 @@ export default function App() {
                   Consultando datos para validación…
                 </div>
               )
-            ))}
-          {page === "exports" && <ExportsPage navigate={navigate} />}
+            )}
+          </Activity>
+          <Activity mode={page === "exports" ? "visible" : "hidden"}>
+            <ExportsPage navigate={navigate} />
+          </Activity>
 
           {page === "source" && (
             <>

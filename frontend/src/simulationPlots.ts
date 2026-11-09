@@ -17,7 +17,7 @@ export function simulationPlot(
     font: { family: "Segoe UI, sans-serif", size: 11, color: "#607381" },
     legend: { orientation: "h", x: 0, y: 1.15 },
     xaxis: {
-      title: { text: "Pasos del modelo (sin equivalencia automática a días)" },
+      title: { text: "Paso del modelo" },
       showgrid: false,
       tickformat: "d",
     },
@@ -66,7 +66,7 @@ export function simulationPlot(
         height: 280,
         xaxis: {
           type: "date",
-          title: { text: "Fechas originales del entrenamiento" },
+          title: { text: "Fecha de vigencia" },
           showgrid: false,
         },
       },
@@ -94,7 +94,7 @@ export function simulationPlot(
         ...layout,
         showlegend: false,
         bargap: 0,
-        xaxis: { title: { text: "Precio terminal simulado · COP/USD" } },
+        xaxis: { title: { text: "Precio terminal · COP/USD" } },
         yaxis: {
           ...layout.yaxis,
           title: { text: "Frecuencia de réplicas" },

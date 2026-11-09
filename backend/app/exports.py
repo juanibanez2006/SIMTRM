@@ -186,7 +186,7 @@ class ExcelBook:
             ("Versión exportación", "excel-1.0.0"),
             (
                 "Convención",
-                "Resultados calculados por el backend; libro de valores, no modelo "
+                "Resultados calculados por SIMTRM; libro de valores, no modelo "
                 "recalculable. Celdas vacías = resultado no disponible. "
                 "Fechas y números conservan sus tipos Excel.",
             ),

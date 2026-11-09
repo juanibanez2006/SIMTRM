@@ -68,7 +68,7 @@ export function backtestPlot(
       legend: { orientation: "h", y: 1.18 },
       xaxis: {
         type: "date",
-        title: { text: "Inicio de vigencia de cada observación evaluada" },
+        title: { text: "Fecha de vigencia" },
         showgrid: false,
       },
       yaxis: {
