@@ -60,7 +60,7 @@ def test_history_dates_numbers_formats_filters_and_complete_population(client, i
     assert sheet["A1"].fill.fgColor.rgb.endswith("173D50")
     meta = metadata(book)
     assert meta["Registros históricos exportados"] == 5
-    assert meta["Filtro.year"] == 2024 and "datos.gov.co" in meta["URL fuente"]
+    assert meta["Filtro.year"] == 2024 and "banrep.gov.co" in meta["URL fuente"]
     assert data_status(imported) == before
     book.close()
 
@@ -127,25 +127,6 @@ def test_statistical_values_units_percentages_and_nulls_match_api(client):
     one.close()
 
 
-def test_comparison_has_both_original_samples_normalization_and_percentage_points(client):
-    query = "a_start=2024-01-01&a_end=2024-01-03&b_start=2024-01-04&b_end=2024-01-08"
-    expected = client.get("/api/v1/trm/comparison?" + query).json()
-    book = workbook(client.get("/api/v1/exports/comparison?" + query))
-    assert book["Periodo A"].max_row == 4 and book["Periodo B"].max_row == 3
-    assert book["Alineacion"]["D2"].value == book["Alineacion"]["G2"].value == 100
-    assert book["Alineacion"]["E4"].value is None
-    row = next(
-        row
-        for row in book["Comparacion"].iter_rows(min_row=2, values_only=True)
-        if row[0] == "Variación relativa entre extremos"
-    )
-    delta = next(
-        item["delta"] for item in expected["differences"] if item["metric"] == "relative_change"
-    )
-    assert row[4] == pytest.approx(delta * 100) and row[5] == "pp"
-    book.close()
-
-
 def test_simulation_exports_complete_matrices_and_immutable_training(client, imported):
     result = experiment(client)
     with imported.connect() as connection:
@@ -188,15 +169,14 @@ def test_backtest_export_persists_separate_samples_and_diagnostics(client, impor
             "cutoff_date": "2024-01-03",
             "horizon": 2,
             "replicas": 20,
-            "uniform_count": 250,
         },
     ).json()
     with imported.connect() as connection:
         connection.execute("DELETE FROM records")
     book = workbook(client.get("/api/v1/exports/backtest/" + result["id"]))
     assert book["Entrenamiento"].max_row == 4 and book["Datos posteriores"].max_row == 3
-    assert book["Uniformes diagnosticos"].max_row == 251
-    assert book["Diagnosticos"].max_row == 5
+    assert "Uniformes diagnosticos" not in book.sheetnames
+    assert book["Diagnosticos"].max_row == 2
     assert book["Resumen"]["B2"].value == 10.5
     assert metadata(book)["Estado"] == "complete"
     assert book["Evaluacion"]["C2"].value == datetime(2024, 1, 4)

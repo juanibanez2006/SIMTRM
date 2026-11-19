@@ -7,7 +7,7 @@ import scipy
 
 from app.config import SOURCE_NAME, now_bogota
 from app.db import Database
-from app.diagnostics import generator_diagnostics, model_diagnostics
+from app.diagnostics import model_diagnostics
 from app.records import Record, canonical_json, digest, normalize
 from app.schemas import BacktestOut, BacktestRequest, SimulationOut
 from app.simulation import SimulationError, run_experiment
@@ -125,9 +125,6 @@ def evaluate_experiment(
             ],
             "baseline": baseline,
             "methods": methods,
-            "generator_diagnostics": generator_diagnostics(
-                request.seed, request.uniform_count, request.alpha
-            ),
             "model_diagnostics": model_diagnostics(training, request.alpha),
             "training_fingerprint": experiment.training.dataset_fingerprint,
             "evaluation_fingerprint": digest([row.fingerprint for row in observed]),
@@ -204,4 +201,9 @@ def create_backtest(db: Database, request: BacktestRequest) -> BacktestOut:
 def get_backtest(db: Database, id: str) -> BacktestOut | None:
     with db.connect() as connection:
         row = connection.execute("SELECT result_json FROM backtests WHERE id=?", (id,)).fetchone()
-    return BacktestOut.model_validate_json(row["result_json"]) if row else None
+    if not row:
+        return None
+    data = json.loads(row["result_json"])
+    # This retired teaching parameter did not affect any simulated price.
+    data["request"].pop("uniform_count", None)
+    return BacktestOut.model_validate(data)

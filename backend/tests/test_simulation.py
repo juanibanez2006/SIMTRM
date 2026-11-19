@@ -236,7 +236,7 @@ def test_numerical_overflow_rejected_instead_of_clipped_or_nonfinite_prices():
         {"training_start": "2024-02-01"},
         {"training_end": "2024-01-09"},
         {"method": "unknown"},
-        {"horizon": 0},
+        {"horizon": -1},
         {"horizon": 366},
         {"replicas": 0},
         {"replicas": 50001},
@@ -297,12 +297,12 @@ def test_api_persistence_retrieval_and_replay_from_immutable_snapshot(client, im
 
 
 def test_api_no_external_requests_and_full_data_untouched(client, imported, monkeypatch):
-    from app.source import SocrataClient
+    from app.source import HttpSource
 
     def forbidden(*args, **kwargs):
         pytest.fail("La simulación debe funcionar sin internet")
 
-    monkeypatch.setattr(SocrataClient, "request", forbidden)
+    monkeypatch.setattr(HttpSource, "request", forbidden)
     before = data_status(imported)
     assert client.post("/api/v1/simulations", json=body()).status_code == 201
     assert data_status(imported) == before

@@ -38,7 +38,7 @@ class Record:
             self.valid_to.isoformat(),
             self.source_id,
             self.fingerprint,
-            SOURCE_URL,
+            json.loads(self.raw_json).get("_source", SOURCE_URL),
             obtained_at,
             "validated",
             self.raw_json,
@@ -90,6 +90,8 @@ def audit_records(records: list[Record], today: date) -> dict:
         "future_starts": 0,
         "future_ends": 0,
         "extreme_changes": 0,
+        "missing_days": 0,
+        "gap_ranges": [],
     }
     previous = None
     for item in records:
@@ -104,6 +106,13 @@ def audit_records(records: list[Record], today: date) -> dict:
                 audit["overlaps"] += 1
             if item.valid_from > previous.valid_to + timedelta(days=1):
                 audit["gaps"] += 1
+                audit["missing_days"] += (item.valid_from - previous.valid_to).days - 1
+                audit["gap_ranges"].append(
+                    {
+                        "start": str(previous.valid_to + timedelta(days=1)),
+                        "end": str(item.valid_from - timedelta(days=1)),
+                    }
+                )
             if abs(item.value / previous.value - 1) > Decimal("0.10"):
                 audit["extreme_changes"] += 1
         previous = item

@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import secrets
 import sqlite3
@@ -15,30 +16,35 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.automatic import AutomaticSync
 from app.backtesting import create_backtest, get_backtest
-from app.comparison import comparison_for_periods
+from app.banrep import BanrepClient
 from app.config import Settings, now_bogota
 from app.db import Database
 from app.exports import (
     MIME_XLSX,
     ExportError,
     export_backtest,
-    export_comparison,
     export_history,
+    export_rolling,
     export_simulation,
     export_statistics,
 )
+from app.projection import create_projection, create_rolling
+from app.projection_exports import export_projection, export_scenarios
 from app.queries import data_status, latest, record_out, run_out, series, where_filter
 from app.records import DataError
 from app.schemas import (
     BacktestOut,
     BacktestRequest,
-    ComparisonOut,
-    ComparisonQuery,
     DataStatus,
     HistoryFilter,
     HistoryOut,
     HistoryQuery,
     LatestOut,
+    ProjectionOut,
+    ProjectionRequest,
+    RollingOut,
+    RollingRequest,
+    ScenarioExportRequest,
     SeriesOut,
     SimulationExportRequest,
     SimulationOut,
@@ -49,7 +55,7 @@ from app.schemas import (
     SyncRun,
 )
 from app.simulation import SimulationError, create_experiment, get_experiment, replay_experiment
-from app.source import SocrataClient, SourceError
+from app.source import SourceError
 from app.statistics import statistics_for_period
 from app.sync import SyncBusy, synchronize
 
@@ -149,7 +155,7 @@ def create_app(settings: Settings | None = None, source_factory=None) -> FastAPI
                 raise HTTPException(403, "Token administrativo requerido")
         elif not request.client or request.client.host not in {"127.0.0.1", "::1"}:
             raise HTTPException(403, "Sincronización restringida al equipo local")
-        source = source_factory() if source_factory else SocrataClient(settings)
+        source = source_factory() if source_factory else BanrepClient(settings)
         try:
             return run_out(synchronize(db, settings, source, body.mode))
         except SyncBusy as exc:
@@ -212,15 +218,6 @@ def create_app(settings: Settings | None = None, source_factory=None) -> FastAPI
                 409, "El histórico local no supera la validación estadística"
             ) from exc
 
-    @app.get("/api/v1/trm/comparison", response_model=ComparisonOut)
-    def comparison(query: Annotated[ComparisonQuery, Query()]):
-        try:
-            return comparison_for_periods(db, query)
-        except DataError as exc:
-            raise HTTPException(
-                409, "El histórico local no supera la validación comparativa"
-            ) from exc
-
     def execute_simulation(action):
         if not app.state.simulation_lock.acquire(blocking=False):
             raise HTTPException(429, "Ya hay una simulación en curso; inténtelo nuevamente")
@@ -237,6 +234,101 @@ def create_app(settings: Settings | None = None, source_factory=None) -> FastAPI
     @app.post("/api/v1/simulations", response_model=SimulationOut, status_code=201)
     def simulations(body: SimulationRequest):
         return execute_simulation(lambda: create_experiment(db, body))
+
+    @app.post("/api/v1/projections", response_model=ProjectionOut, status_code=201)
+    def projections(body: ProjectionRequest):
+        return execute_simulation(lambda: create_projection(db, body))
+
+    @app.get("/api/v1/projections/{id}", response_model=ProjectionOut)
+    def projection(id: UUID):
+        with db.connect() as connection:
+            row = connection.execute(
+                "SELECT result_json FROM projections WHERE id=?", (str(id),)
+            ).fetchone()
+        if row is None:
+            raise HTTPException(404, "Proyección no encontrada")
+        return ProjectionOut.model_validate_json(row[0])
+
+    @app.post("/api/v1/projections/{id}/replay", response_model=ProjectionOut, status_code=201)
+    def replay_projection(id: UUID):
+        def action():
+            original = projection(id)
+            reproduced = replay_experiment(db, original.id)
+            if reproduced is None:
+                return None
+            result = original.model_copy(update={"id": reproduced.id, "experiment": reproduced})
+            with db.connect() as connection:
+                connection.execute(
+                    "INSERT INTO projections VALUES(?,?)", (result.id, result.model_dump_json())
+                )
+            return result
+
+        return execute_simulation(action)
+
+    @app.get("/api/v1/experiments")
+    def experiments():
+        items = []
+        # Stored results, including experiments predating the date-based interface.
+        with db.connect() as connection:
+            for kind, table_name in [
+                ("projection", "projections"),
+                ("rolling", "rolling_evaluations"),
+                ("simulation", "simulation_experiments"),
+                ("backtest", "backtests"),
+            ]:
+                if kind == "simulation":
+                    rows = connection.execute("""
+                        SELECT s.result_json FROM simulation_experiments s
+                        WHERE NOT EXISTS(SELECT 1 FROM projections p WHERE p.id=s.id)
+                        AND NOT EXISTS(SELECT 1 FROM backtests b
+                            WHERE json_extract(b.result_json,'$.experiment_id')=s.id)
+                        AND NOT EXISTS(SELECT 1 FROM rolling_evaluations r,
+                            json_each(r.result_json,'$.cases') c
+                            WHERE json_extract(c.value,'$.experiment_id')=s.id)
+                        ORDER BY s.rowid DESC LIMIT 20
+                    """).fetchall()
+                else:
+                    rows = connection.execute(
+                        f"SELECT result_json FROM {table_name} ORDER BY rowid DESC LIMIT 20"
+                    ).fetchall()
+                for row in rows:
+                    data = json.loads(row[0])
+                    items.append(
+                        dict(
+                            id=data["id"],
+                            kind=kind,
+                            created_at=data.get(
+                                "created_at", data.get("experiment", {}).get("created_at", "")
+                            ),
+                            target_date=data.get("target_date"),
+                            method=data.get("request", {}).get("method"),
+                        )
+                    )
+        # The low-level matrix of a dated projection is not a separate user experiment.
+        projected = {item["id"] for item in items if item["kind"] == "projection"}
+        return sorted(
+            [
+                item
+                for item in items
+                if not (item["kind"] == "simulation" and item["id"] in projected)
+            ],
+            key=lambda item: item["created_at"],
+            reverse=True,
+        )[:20]
+
+    @app.post("/api/v1/validations/rolling", response_model=RollingOut, status_code=201)
+    def rolling(body: RollingRequest):
+        return execute_simulation(lambda: create_rolling(db, body))
+
+    @app.get("/api/v1/validations/rolling/{id}", response_model=RollingOut)
+    def rolling_result(id: UUID):
+        with db.connect() as connection:
+            row = connection.execute(
+                "SELECT result_json FROM rolling_evaluations WHERE id=?", (str(id),)
+            ).fetchone()
+        if row is None:
+            raise HTTPException(404, "Evaluación no encontrada")
+        return RollingOut.model_validate_json(row[0])
 
     @app.get("/api/v1/simulations/{experiment_id}", response_model=SimulationOut)
     def simulation(experiment_id: UUID):
@@ -283,13 +375,19 @@ def create_app(settings: Settings | None = None, source_factory=None) -> FastAPI
     def history_excel(query: Annotated[HistoryFilter, Query()]):
         return download(lambda: export_history(db, query), "SIMTRM_historico.xlsx")
 
+    @app.get("/api/v1/exports/projection/{id}")
+    def projection_excel(id: UUID, include_paths: bool = False):
+        return download(
+            lambda: export_projection(db, str(id), include_paths), f"SIMTRM_proyeccion_{id}.xlsx"
+        )
+
     @app.get("/api/v1/exports/statistics")
     def statistics_excel(query: Annotated[StatisticsQuery, Query()]):
         return download(lambda: export_statistics(db, query), "SIMTRM_estadisticas.xlsx")
 
-    @app.get("/api/v1/exports/comparison")
-    def comparison_excel(query: Annotated[ComparisonQuery, Query()]):
-        return download(lambda: export_comparison(db, query), "SIMTRM_comparacion.xlsx")
+    @app.post("/api/v1/exports/scenarios")
+    def scenarios_excel(body: ScenarioExportRequest):
+        return download(lambda: export_scenarios(db, body.ids), "SIMTRM_escenarios.xlsx")
 
     @app.post("/api/v1/exports/simulation")
     def simulation_excel(body: SimulationExportRequest):
@@ -301,6 +399,10 @@ def create_app(settings: Settings | None = None, source_factory=None) -> FastAPI
     @app.get("/api/v1/exports/backtest/{id}")
     def backtest_excel(id: UUID):
         return download(lambda: export_backtest(db, str(id)), f"SIMTRM_validacion_{id}.xlsx")
+
+    @app.get("/api/v1/exports/rolling/{id}")
+    def rolling_excel(id: UUID):
+        return download(lambda: export_rolling(db, str(id)), f"SIMTRM_evaluacion_{id}.xlsx")
 
     return app
 

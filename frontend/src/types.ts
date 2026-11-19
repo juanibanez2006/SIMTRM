@@ -24,7 +24,7 @@ export interface SyncRun {
   revised: number;
   removed: number;
   error: string | null;
-  audit: Record<string, number | string | null>;
+  audit: Record<string, unknown>;
 }
 
 export interface DataStatus {
@@ -77,11 +77,99 @@ export interface Series {
   convention: string;
 }
 
-export interface Filters {
-  year: string;
-  month: string;
-  start: string;
-  end: string;
+export interface ProjectionSettings {
+  method: "bootstrap" | "monte_carlo" | "arima";
+  horizon: number;
+  training_records: number;
+  replicas: number;
+  seed: number;
+  target_date?: string | null;
+  training_start?: string | null;
+  training_end?: string | null;
+  volatility_scale?: number;
+  threshold?: string | null;
+  interval_low?: string | null;
+  interval_high?: string | null;
+}
+
+export interface Projection {
+  id: string;
+  request: ProjectionSettings;
+  as_of: string;
+  valid_from: string;
+  valid_to: string;
+  estimate: number;
+  lower: number;
+  upper: number;
+  change: number;
+  relative_change: number;
+  experiment: Simulation;
+  convention: string;
+  model_version?: string;
+  target_date?: string | null;
+  projected_from?: string | null;
+  projected_to?: string | null;
+  points?: ProjectionPoint[];
+  history?: Series["points"];
+  calendar_version?: string | null;
+  calendar_convention?: string;
+  calendar_sources?: string[];
+  published_references?: TrmRecord[];
+  validation?: RollingEvaluation | null;
+  validation_status?: string;
+}
+
+export interface ProjectionPoint {
+  step: number;
+  date: string;
+  valid_from: string;
+  valid_to: string;
+  median: number;
+  p5: number;
+  p95: number;
+  change: number;
+  relative_change: number;
+  requested: boolean;
+}
+
+export interface RollingEvaluation {
+  id: string;
+  request: {
+    settings: ProjectionSettings;
+    horizons: number[];
+    folds: number;
+    unit?: "calendar_days" | "transitions";
+    last_cutoff?: string | null;
+  };
+  created_at: string;
+  summaries: {
+    horizon: number;
+    count: number;
+    model: Backtest["baseline"];
+    baseline: Backtest["baseline"];
+    mean_width: number;
+  }[];
+  cases: {
+    cutoff: string;
+    target: string;
+    horizon: number;
+    experiment_id: string;
+    initial: number;
+    actual: number;
+    predicted: number;
+    lower: number;
+    upper: number;
+    model?: "bootstrap" | "monte_carlo" | "arima" | null;
+    absolute_error?: number | null;
+    relative_error?: number | null;
+    target_valid_from?: string | null;
+    target_valid_to?: string | null;
+    simulated_steps?: number | null;
+    calendar_matches?: boolean | null;
+  }[];
+  skipped: number;
+  convention: string;
+  warnings: string[];
 }
 
 export type AnalysisVariable = "price" | "simple_return" | "log_return";
@@ -165,73 +253,8 @@ export interface Statistics {
   warnings: string[];
 }
 
-export type ComparisonAlignment = "observation" | "elapsed_days";
-export type ComparisonScale = "price" | "normalized";
-export type ComparisonMetric =
-  | "count"
-  | "mean"
-  | "median"
-  | "minimum"
-  | "maximum"
-  | "sample_std"
-  | "initial_value"
-  | "final_value"
-  | "absolute_change"
-  | "relative_change"
-  | "cumulative_return"
-  | "volatility";
-export interface ComparisonPoint {
-  position: number;
-  date: string;
-  valid_to: string;
-  effective_date: string;
-  effective_until: string;
-  value: string;
-  normalized: number;
-  gap_before: boolean;
-}
-export interface ComparisonPeriod {
-  requested_start: string;
-  requested_end: string;
-  observed_start: string | null;
-  observed_end: string | null;
-  return_count: number;
-  gap_count: number;
-  excluded_future_records: number;
-  metrics: Record<ComparisonMetric, number | null> & { count: number };
-  points: ComparisonPoint[];
-  dataset_fingerprint: string;
-  warnings: string[];
-}
-export interface Comparison {
-  alignment: ComparisonAlignment;
-  a: ComparisonPeriod;
-  b: ComparisonPeriod;
-  differences: {
-    metric: ComparisonMetric;
-    unit: "COP/USD" | "fraction" | "count";
-    a: number | null;
-    b: number | null;
-    delta: number | null;
-    relative_delta: number | null;
-  }[];
-  rows: {
-    position: number;
-    a: ComparisonPoint | null;
-    b: ComparisonPoint | null;
-  }[];
-  paired_positions: number;
-  source: string;
-  cutoff_date: string;
-  calculated_at: string;
-  model_version: string;
-  dataset_fingerprint: string;
-  convention: string;
-  interpretation: string;
-  warnings: string[];
-}
+export type SimulationMethod = "monte_carlo" | "bootstrap" | "arima";
 
-export type SimulationMethod = "monte_carlo" | "bootstrap";
 export interface SimulationRequest {
   training_start: string;
   training_end: string;
@@ -241,6 +264,8 @@ export interface SimulationRequest {
   replicas: number;
   seed: number;
   initial_price: string | null;
+  initial_return?: number | null;
+  volatility_scale?: number;
   threshold: string | null;
   interval_low: string | null;
   interval_high: string | null;
@@ -276,6 +301,7 @@ export interface SimulationMethodResult {
   }[];
   interpretation: string;
   assumptions: string;
+  fitted_parameters?: Record<string, number>;
 }
 export interface Simulation {
   id: string;
@@ -337,7 +363,6 @@ export interface Backtest {
     horizon: number;
     replicas: number;
     seed: number;
-    uniform_count: number;
     alpha: number;
   };
   status: "complete" | "insufficient";
@@ -363,24 +388,6 @@ export interface Backtest {
       covered: boolean;
     }[];
   }[];
-  generator_diagnostics: {
-    seed: number;
-    count: number;
-    mean: number;
-    sample_variance: number;
-    expected_mean: number;
-    expected_variance: number;
-    d_plus: number;
-    d_minus: number;
-    uniforms: number[];
-    frequencies: number[];
-    expected_frequency: number;
-    series_frequencies: number[];
-    series_pairs: number;
-    series_expected_frequency: number;
-    tests: DiagnosticTest[];
-    convention: string;
-  };
   model_diagnostics: {
     return_count: number;
     normality: DiagnosticTest;

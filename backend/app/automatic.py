@@ -2,10 +2,10 @@ import logging
 from datetime import timedelta
 from threading import Event, Thread
 
+from app.banrep import BanrepClient
 from app.config import Settings, now_bogota
 from app.db import Database
 from app.locking import SyncBusy, sync_lock
-from app.source import SocrataClient
 from app.sync import automatic_next_check, recover_interrupted_sync, synchronize
 
 logger = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ class AutomaticSync:
 
     def __init__(self, db: Database, settings: Settings, source_factory=None):
         self.db, self.settings = db, settings
-        self.source_factory = source_factory or (lambda: SocrataClient(settings))
+        self.source_factory = source_factory or (lambda: BanrepClient(settings))
         self.stop_event = Event()
         self.thread = Thread(target=self._run, name="simtrm-auto-sync", daemon=False)
 

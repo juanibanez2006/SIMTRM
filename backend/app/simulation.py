@@ -14,11 +14,34 @@ from app.records import Record, canonical_json, digest, normalize
 from app.schemas import HistoryFilter, SimulationOut, SimulationRequest
 from app.statistics import compute_returns, describe, distribution, select_past_records
 
-MODEL_VERSION = "simulation-1.0.0"
+MODEL_VERSION = "simulation-2.0.0"
 
 
 class SimulationError(ValueError):
     pass
+
+
+def fit_arima(log_returns: NDArray) -> dict:
+    """Conditional least squares ARIMA(1,1,0) on log prices, with intercept.
+
+    Differencing log prices yields r[t] = c + phi*r[t-1] + epsilon[t].
+    Reject nonstationary return fits rather than silently clipping coefficients.
+    """
+    if len(log_returns) < 30:
+        raise SimulationError("ARIMA requiere al menos 30 rendimientos contiguos")
+    x = np.column_stack((np.ones(len(log_returns) - 1), log_returns[:-1]))
+    coefficients, _, rank, _ = np.linalg.lstsq(x, log_returns[1:], rcond=None)
+    if rank < 2:
+        raise SimulationError("ARIMA no es identificable con rendimientos constantes")
+    intercept, phi = map(float, coefficients)
+    if abs(phi) >= 1:
+        raise SimulationError("ARIMA estimó rendimientos no estacionarios; cambie la ventana")
+    residuals = log_returns[1:] - x @ coefficients
+    return dict(
+        intercept=intercept,
+        phi=phi,
+        innovation_sigma=float(np.sqrt(np.sum(residuals**2) / (len(residuals) - 2))),
+    )
 
 
 def prepare_training(
@@ -36,6 +59,8 @@ def prepare_training(
     logs = np.array(
         [row["log_return"] for row in returns if not row["excluded_gap"]], dtype=np.float64
     )
+    if request.method == "arima" and any(row["excluded_gap"] for row in returns):
+        raise SimulationError("ARIMA requiere un entrenamiento sin huecos de cobertura")
     if len(logs) < 2:
         raise SimulationError(
             "Se requieren al menos tres precios y dos rendimientos contiguos válidos para calibrar"
@@ -76,8 +101,27 @@ def simulate_paths(
             )
         elif method == "bootstrap":
             increments = rng.choice(log_returns, size=shape, replace=True)
+        elif method == "arima":
+            fit = fit_arima(log_returns)
+            increments = np.empty(shape)
+            previous = np.full(
+                request.replicas,
+                request.initial_return if request.initial_return is not None else log_returns[-1],
+            )
+            for step in range(request.horizon):
+                previous = (
+                    fit["intercept"]
+                    + fit["phi"] * previous
+                    + rng.normal(
+                        0, fit["innovation_sigma"] * request.volatility_scale, request.replicas
+                    )
+                )
+                increments[:, step] = previous
         else:
             raise SimulationError("Método de simulación no admitido")
+        if method != "arima" and request.volatility_scale != 1:
+            mu = float(np.mean(log_returns))
+            increments = mu + (increments - mu) * request.volatility_scale
         paths = np.empty((request.replicas, request.horizon + 1), dtype=np.float64)
         paths[:, 0] = initial_price
         paths[:, 1:] = initial_price * np.exp(np.cumsum(increments, axis=1))
@@ -137,6 +181,18 @@ def summarize_paths(
         "Conserva su distribución empírica, pero pierde dependencia temporal "
         "y agrupamiento de volatilidad."
     )
+    if method == "arima":
+        assumptions = (
+            "ARIMA(1,1,0) sobre log precios, estimado por mínimos cuadrados condicionales: "
+            "r[t] = c + φ r[t−1] + ε[t]. Innovaciones normales independientes; "
+            "|φ| < 1. Varianza residual con n−2 grados de libertad. "
+            "Se condiciona al último rendimiento conocido en el origen, "
+            "sin estacionalidad impuesta."
+        )
+    assumptions += (
+        f" Factor de volatilidad del escenario: {request.volatility_scale:g}; "
+        "escala las innovaciones, sin modificar la deriva estimada."
+    )
     low = f"{quantiles[0, -1]:.2f}".replace(".", ",")
     high = f"{quantiles[4, -1]:.2f}".replace(".", ",")
     return {
@@ -175,7 +231,9 @@ def run_experiment(
             for method in methods:
                 paths = simulate_paths(logs, request, method, initial)
                 matrices[method] = paths
-                results.append(summarize_paths(paths, request, method, initial, threshold))
+                summary = summarize_paths(paths, request, method, initial, threshold)
+                summary["fitted_parameters"] = fit_arima(logs) if method == "arima" else {}
+                results.append(summary)
     except (FloatingPointError, OverflowError) as exc:
         raise SimulationError(
             "Escenario fuera del rango numérico representable; "
@@ -198,8 +256,12 @@ def run_experiment(
         )
     if request.training_end < request.cutoff_date:
         warnings.append(
-            "El entrenamiento termina antes del corte; el precio inicial automático "
-            "procede del último registro de entrenamiento."
+            "El entrenamiento termina antes del corte. "
+            + (
+                "El precio inicial se configuró por separado."
+                if request.initial_price is not None
+                else "El precio inicial procede del último registro de entrenamiento."
+            )
         )
     if training["last_date"] < str(request.training_end):
         warnings.append(

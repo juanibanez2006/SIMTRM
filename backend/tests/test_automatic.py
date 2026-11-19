@@ -13,13 +13,14 @@ import httpx
 import pytest
 from conftest import synthetic_row
 from fastapi.testclient import TestClient
+from source_double import SocrataClient
 
 from app.automatic import AutomaticSync
 from app.db import Database
 from app.locking import SyncBusy, sync_lock
 from app.main import create_app
 from app.queries import data_status, latest
-from app.source import SocrataClient, SourceError
+from app.source import SourceError
 from app.sync import recover_interrupted_sync, synchronize
 
 

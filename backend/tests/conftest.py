@@ -2,10 +2,15 @@ from datetime import date, timedelta
 
 import httpx
 import pytest
+from source_double import SocrataClient
 
 from app.config import Settings
 from app.db import Database
-from app.source import SocrataClient
+
+
+class TestSettings(Settings):
+    __test__ = False
+    source_page_size: int = 2
 
 
 def synthetic_row(start: str, value="100.00", end=None, source_id=None):
@@ -39,7 +44,7 @@ def rows():
 
 @pytest.fixture
 def settings(tmp_path):
-    return Settings(
+    return TestSettings(
         _env_file=None,
         auto_sync_enabled=False,
         database_path=tmp_path / "test.sqlite3",

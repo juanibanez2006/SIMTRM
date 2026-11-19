@@ -1,10 +1,10 @@
 import argparse
 import json
 
+from app.banrep import BanrepClient
 from app.config import Settings
 from app.db import Database
 from app.queries import data_status, run_out
-from app.source import SocrataClient
 from app.sync import synchronize
 
 
@@ -19,7 +19,7 @@ def main():
     if args.command == "status":
         result = data_status(db, settings)
     else:
-        source = SocrataClient(settings)
+        source = BanrepClient(settings)
         try:
             result = run_out(synchronize(db, settings, source, args.mode))
         finally:

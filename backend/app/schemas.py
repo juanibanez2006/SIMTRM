@@ -217,95 +217,6 @@ class StatisticsOut(BaseModel):
     warnings: list[str]
 
 
-class ComparisonQuery(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    a_start: date
-    a_end: date
-    b_start: date
-    b_end: date
-    alignment: Literal["observation", "elapsed_days"] = "observation"
-
-    @model_validator(mode="after")
-    def valid_ranges(self):
-        if self.a_start > self.a_end:
-            raise ValueError("El periodo A tiene las fechas invertidas")
-        if self.b_start > self.b_end:
-            raise ValueError("El periodo B tiene las fechas invertidas")
-        return self
-
-
-class ComparisonPoint(BaseModel):
-    position: int
-    date: date
-    valid_to: date
-    effective_date: date
-    effective_until: date
-    value: str
-    normalized: FiniteFloat
-    gap_before: bool
-
-
-class ComparisonMetrics(BaseModel):
-    count: int
-    mean: FiniteFloat | None
-    median: FiniteFloat | None
-    minimum: FiniteFloat | None
-    maximum: FiniteFloat | None
-    sample_std: FiniteFloat | None
-    initial_value: FiniteFloat | None
-    final_value: FiniteFloat | None
-    absolute_change: FiniteFloat | None
-    relative_change: FiniteFloat | None
-    cumulative_return: FiniteFloat | None
-    volatility: FiniteFloat | None
-
-
-class ComparisonPeriod(BaseModel):
-    requested_start: date
-    requested_end: date
-    observed_start: date | None
-    observed_end: date | None
-    return_count: int
-    gap_count: int
-    excluded_future_records: int
-    metrics: ComparisonMetrics
-    points: list[ComparisonPoint]
-    dataset_fingerprint: str
-    warnings: list[str]
-
-
-class ComparisonDifference(BaseModel):
-    metric: str
-    unit: Literal["COP/USD", "fraction", "count"]
-    a: FiniteFloat | None
-    b: FiniteFloat | None
-    delta: FiniteFloat | None
-    relative_delta: FiniteFloat | None
-
-
-class ComparisonRow(BaseModel):
-    position: int
-    a: ComparisonPoint | None
-    b: ComparisonPoint | None
-
-
-class ComparisonOut(BaseModel):
-    alignment: Literal["observation", "elapsed_days"]
-    a: ComparisonPeriod
-    b: ComparisonPeriod
-    differences: list[ComparisonDifference]
-    rows: list[ComparisonRow]
-    paired_positions: int
-    source: str
-    cutoff_date: date
-    calculated_at: str
-    model_version: str
-    dataset_fingerprint: str
-    convention: str
-    interpretation: str
-    warnings: list[str]
-
-
 SimulationMoney = Annotated[Decimal, Field(gt=0, le=Decimal("1000000000"), decimal_places=2)]
 
 
@@ -314,15 +225,17 @@ class SimulationRequest(BaseModel):
     training_start: date
     training_end: date
     cutoff_date: date
-    method: Literal["monte_carlo", "bootstrap", "both"] = "both"
-    horizon: StrictInt = Field(default=30, ge=1, le=365)
+    method: Literal["monte_carlo", "bootstrap", "arima", "both"] = "both"
+    horizon: StrictInt = Field(default=30, ge=0, le=365)
     replicas: StrictInt = Field(default=1000, ge=1, le=50000)
     seed: StrictInt = Field(default=2026, ge=0, le=4294967295)
     initial_price: SimulationMoney | None = None
+    initial_return: FiniteFloat | None = None
     threshold: SimulationMoney | None = None
     interval_low: SimulationMoney | None = None
     interval_high: SimulationMoney | None = None
     display_paths: StrictInt = Field(default=20, ge=1, le=50)
+    volatility_scale: FiniteFloat = Field(default=1, ge=0, le=3)
 
     @model_validator(mode="after")
     def valid_experiment(self):
@@ -366,7 +279,7 @@ class EventProbability(BaseModel):
 
 
 class SimulationMethodOut(BaseModel):
-    method: Literal["monte_carlo", "bootstrap"]
+    method: Literal["monte_carlo", "bootstrap", "arima"]
     paths: list[list[FiniteFloat]]
     displayed_paths: int
     total_paths: int
@@ -377,6 +290,7 @@ class SimulationMethodOut(BaseModel):
     probabilities: list[EventProbability]
     interpretation: str
     assumptions: str
+    fitted_parameters: dict[str, FiniteFloat] = Field(default_factory=dict)
 
 
 class SimulationTraining(BaseModel):
@@ -418,11 +332,10 @@ class BacktestRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     training_start: date
     cutoff_date: date
-    method: Literal["monte_carlo", "bootstrap", "both"] = "both"
+    method: Literal["monte_carlo", "bootstrap", "arima", "both"] = "both"
     horizon: StrictInt = Field(default=30, ge=1, le=365)
     replicas: StrictInt = Field(default=1000, ge=1, le=50000)
     seed: StrictInt = Field(default=2026, ge=0, le=4294967295)
-    uniform_count: StrictInt = Field(default=1000, ge=250, le=10000)
     alpha: Literal[0.01, 0.05, 0.1] = 0.05
 
     def simulation_request(self) -> SimulationRequest:
@@ -450,25 +363,6 @@ class DiagnosticTest(BaseModel):
     alpha: FiniteFloat
     decision: Literal["reject", "do_not_reject", "not_applicable"]
     detail: str
-
-
-class GeneratorDiagnostics(BaseModel):
-    seed: int
-    count: int
-    mean: FiniteFloat
-    sample_variance: FiniteFloat
-    expected_mean: FiniteFloat
-    expected_variance: FiniteFloat
-    d_plus: FiniteFloat
-    d_minus: FiniteFloat
-    uniforms: list[FiniteFloat]
-    frequencies: list[int]
-    expected_frequency: FiniteFloat
-    series_frequencies: list[int]
-    series_pairs: int
-    series_expected_frequency: FiniteFloat
-    tests: list[DiagnosticTest]
-    convention: str
 
 
 class ModelDiagnostics(BaseModel):
@@ -504,7 +398,7 @@ class EvaluationPoint(BaseModel):
 
 
 class BacktestMethod(BaseModel):
-    method: Literal["monte_carlo", "bootstrap"]
+    method: Literal["monte_carlo", "bootstrap", "arima"]
     metrics: EvaluationMetrics
     points: list[EvaluationPoint]
 
@@ -520,7 +414,6 @@ class BacktestOut(BaseModel):
     observations: list[AnalysisPoint]
     baseline: EvaluationMetrics
     methods: list[BacktestMethod]
-    generator_diagnostics: GeneratorDiagnostics
     model_diagnostics: ModelDiagnostics
     training_fingerprint: str
     evaluation_fingerprint: str
@@ -537,3 +430,134 @@ class SimulationExportRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
     experiment_id: UUID
     include_paths: bool = True
+
+
+class ScenarioExportRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    ids: list[UUID] = Field(min_length=1, max_length=4)
+
+
+class ProjectionRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+    method: Literal["monte_carlo", "bootstrap", "arima"] = "bootstrap"
+    horizon: StrictInt = Field(default=30, ge=0, le=365)
+    training_records: StrictInt = Field(default=252, ge=31, le=20000)
+    replicas: StrictInt = Field(default=2000, ge=100, le=5000)
+    seed: StrictInt = Field(default=2026, ge=0, le=4294967295)
+    target_date: date | None = None
+    training_start: date | None = None
+    training_end: date | None = None
+    volatility_scale: FiniteFloat = Field(default=1, ge=0, le=3)
+    threshold: SimulationMoney | None = None
+    interval_low: SimulationMoney | None = None
+    interval_high: SimulationMoney | None = None
+
+    @model_validator(mode="after")
+    def valid_settings(self):
+        if (self.training_start is None) != (self.training_end is None):
+            raise ValueError("Indique ambas fechas del entrenamiento")
+        if self.training_start and self.training_start > self.training_end:
+            raise ValueError("El entrenamiento tiene fechas invertidas")
+        if (self.interval_low is None) != (self.interval_high is None):
+            raise ValueError("Indique ambos límites del intervalo")
+        if self.interval_low is not None and self.interval_low > self.interval_high:
+            raise ValueError("El intervalo tiene límites invertidos")
+        return self
+
+
+class ProjectionPoint(BaseModel):
+    step: int
+    date: date
+    valid_from: date
+    valid_to: date
+    median: FiniteFloat
+    p5: FiniteFloat
+    p95: FiniteFloat
+    change: FiniteFloat
+    relative_change: FiniteFloat
+    requested: bool
+
+
+class ProjectionOut(BaseModel):
+    id: str
+    request: ProjectionRequest
+    as_of: date
+    valid_from: date
+    valid_to: date
+    estimate: FiniteFloat
+    lower: FiniteFloat
+    upper: FiniteFloat
+    change: FiniteFloat
+    relative_change: FiniteFloat
+    experiment: SimulationOut
+    convention: str
+    model_version: str = "projection-1.0.0"
+    target_date: date | None = None
+    projected_from: date | None = None
+    projected_to: date | None = None
+    points: list[ProjectionPoint] = Field(default_factory=list)
+    history: list[SeriesPoint] = Field(default_factory=list)
+    calendar_version: str | None = None
+    calendar_convention: str = ""
+    calendar_sources: list[str] = Field(default_factory=list)
+    published_references: list[RecordOut] = Field(default_factory=list)
+    anchor_reference: RecordOut | None = None
+    validation: "RollingOut | None" = None
+    validation_status: str = "No ejecutada en este experimento por transiciones"
+
+
+class RollingRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    settings: ProjectionRequest = Field(default_factory=ProjectionRequest)
+    horizons: list[Annotated[StrictInt, Field(ge=1, le=365)]] = Field(
+        default_factory=lambda: [5, 20, 60], min_length=1, max_length=4
+    )
+    folds: StrictInt = Field(default=6, ge=2, le=12)
+    unit: Literal["transitions", "calendar_days"] = "transitions"
+    last_cutoff: date | None = None
+
+    @model_validator(mode="after")
+    def resource_limit(self):
+        if len(set(self.horizons)) != len(self.horizons):
+            raise ValueError("Los horizontes no deben repetirse")
+        if sum(h + 1 for h in self.horizons) * self.folds * self.settings.replicas > 5000000:
+            raise ValueError("La evaluación supera 5.000.000 de celdas; reduzca su tamaño")
+        return self
+
+
+class RollingCase(BaseModel):
+    cutoff: date
+    target: date
+    horizon: int
+    experiment_id: str
+    initial: FiniteFloat
+    actual: FiniteFloat
+    predicted: FiniteFloat
+    lower: FiniteFloat
+    upper: FiniteFloat
+    model: Literal["bootstrap", "monte_carlo", "arima"] | None = None
+    absolute_error: FiniteFloat | None = None
+    relative_error: FiniteFloat | None = None
+    target_valid_from: date | None = None
+    target_valid_to: date | None = None
+    simulated_steps: int | None = None
+    calendar_matches: bool | None = None
+
+
+class RollingSummary(BaseModel):
+    horizon: int
+    count: int
+    model: EvaluationMetrics
+    baseline: EvaluationMetrics
+    mean_width: FiniteFloat | None
+
+
+class RollingOut(BaseModel):
+    id: str
+    request: RollingRequest
+    created_at: str
+    summaries: list[RollingSummary]
+    cases: list[RollingCase]
+    skipped: int
+    convention: str
+    warnings: list[str]

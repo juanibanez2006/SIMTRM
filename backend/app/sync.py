@@ -6,7 +6,7 @@ from app.config import Settings, now_bogota
 from app.db import Database
 from app.locking import SyncBusy, sync_lock
 from app.records import DataError, audit_records, canonical_json, normalize
-from app.source import SocrataClient, SourceError, SyncCancelled
+from app.source import HistoricalSource, SourceError, SyncCancelled
 
 INSERT_RECORD = """
     INSERT INTO records(value,unit,valid_from,valid_to,source_id,fingerprint,source,
@@ -57,7 +57,7 @@ def recover_interrupted_sync(db: Database):
 def synchronize(
     db: Database,
     settings: Settings,
-    source: SocrataClient,
+    source: HistoricalSource,
     mode: str,
     *,
     automatic: bool = False,
@@ -82,7 +82,12 @@ def synchronize(
 
 
 def _synchronize(
-    db: Database, settings: Settings, source: SocrataClient, mode: str, *, automatic: bool = False
+    db: Database,
+    settings: Settings,
+    source: HistoricalSource,
+    mode: str,
+    *,
+    automatic: bool = False,
 ) -> dict:
     started = now_bogota().isoformat()
     try:
@@ -101,6 +106,16 @@ def _synchronize(
     try:
         with db.connect() as connection:
             latest = connection.execute("SELECT MAX(valid_from) FROM records").fetchone()[0]
+            if getattr(source, "complete_snapshot", False) or (
+                getattr(source, "url", None)
+                and connection.execute(
+                    "SELECT 1 FROM records WHERE source <> ? LIMIT 1", (source.url,)
+                ).fetchone()
+            ):
+                # SDMX already supplies the whole daily series. Revalidate it all so
+                # old corrections and normalization changes cannot strand incremental sync.
+                mode = "full"
+                connection.execute("UPDATE sync_runs SET mode='full' WHERE id=?", (run_id,))
         since = None
         if mode == "incremental" and latest:
             from datetime import date
@@ -141,6 +156,9 @@ def _synchronize(
             ]
             combined = sorted(retained + records, key=lambda row: row.valid_from)
             audit = audit_records(combined, now_bogota().date())
+            audit["observed_days"] = sum(
+                len(json.loads(r.raw_json).get("observations", [])) for r in combined
+            )
             audit["trigger"] = "automatic" if automatic else "manual"
             if len(combined) != global_before["total"]:
                 raise SourceError(

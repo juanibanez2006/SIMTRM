@@ -74,4 +74,13 @@ class Database:
                     result_json TEXT NOT NULL,
                     evaluation_snapshot_json TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS projections (
+                    id TEXT PRIMARY KEY REFERENCES simulation_experiments(id),
+                    result_json TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS rolling_evaluations (
+                    id TEXT PRIMARY KEY,
+                    result_json TEXT NOT NULL,
+                    evaluation_snapshot_json TEXT NOT NULL
+                );
             """)

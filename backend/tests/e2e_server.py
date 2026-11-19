@@ -2,6 +2,7 @@
 
 import sqlite3
 import sys
+from contextlib import closing
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -20,12 +21,12 @@ def main():
     with TemporaryDirectory(prefix="simtrm-e2e-") as directory:
         target = Path(directory) / "e2e.sqlite3"
         # SQLite backup includes committed WAL contents without changing the original.
-        with sqlite3.connect(source.as_uri() + "?mode=ro", uri=True) as original:
+        with closing(sqlite3.connect(source.as_uri() + "?mode=ro", uri=True)) as original:
             if original.execute("SELECT COUNT(*) FROM records").fetchone()[0] < 3:
                 raise SystemExit(
                     "Se requieren datos oficiales locales para las pruebas integrales."
                 )
-            with sqlite3.connect(target) as isolated:
+            with closing(sqlite3.connect(target)) as isolated:
                 original.backup(isolated)
         app = create_app(Settings(_env_file=None, database_path=target, auto_sync_enabled=False))
         uvicorn.run(app, host="127.0.0.1", port=8001, log_level="warning")

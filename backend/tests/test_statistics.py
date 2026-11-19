@@ -187,12 +187,12 @@ def client(imported, settings):
 
 
 def test_api_statistics_same_filtered_population_and_no_external_dependency(client, monkeypatch):
-    from app.source import SocrataClient
+    from app.source import HttpSource
 
     def forbid_external(*args, **kwargs):
         pytest.fail("El análisis estadístico no debe consultar la API externa")
 
-    monkeypatch.setattr(SocrataClient, "request", forbid_external)
+    monkeypatch.setattr(HttpSource, "request", forbid_external)
     response = client.get("/api/v1/trm/statistics?year=2024&variable=price")
     assert response.status_code == 200
     result = StatisticsOut.model_validate(response.json())

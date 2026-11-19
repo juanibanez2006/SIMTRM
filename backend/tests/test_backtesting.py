@@ -5,10 +5,9 @@ import numpy as np
 import pytest
 from conftest import synthetic_row
 from fastapi.testclient import TestClient
-from scipy import stats
 
 from app.backtesting import evaluation_metrics
-from app.diagnostics import generator_diagnostics, model_diagnostics
+from app.diagnostics import model_diagnostics
 from app.main import create_app
 from app.queries import data_status
 from app.records import normalize
@@ -28,7 +27,6 @@ def body(**overrides):
         "horizon": 2,
         "replicas": 100,
         "seed": 2026,
-        "uniform_count": 250,
         "alpha": 0.05,
         **overrides,
     }
@@ -147,47 +145,15 @@ def test_invalid_requests_are_rejected(client, override):
 
 
 def test_backtests_offline_and_shared_computation_guard(client, monkeypatch):
-    from app.source import SocrataClient
+    from app.source import HttpSource
 
     monkeypatch.setattr(
-        SocrataClient, "request", lambda *args, **kwargs: pytest.fail("No debe consultar internet")
+        HttpSource, "request", lambda *args, **kwargs: pytest.fail("No debe consultar internet")
     )
     assert client.post("/api/v1/backtests", json=body()).status_code == 201
     with client.app.state.simulation_lock:
         assert client.post("/api/v1/backtests", json=body()).status_code == 429
     assert client.get("/api/v1/backtests/00000000-0000-0000-0000-000000000000").status_code == 404
-
-
-def test_uniformity_formula_and_series_detect_joint_dependence(monkeypatch):
-    # Deterministic synthetic grid, intentionally ordered to create dependence.
-    values = (np.arange(250) + 0.5) / 250
-
-    class Generator:
-        def random(self, count):
-            assert count == 250
-            return values
-
-    monkeypatch.setattr(np.random, "default_rng", lambda seed: Generator())
-    result = generator_diagnostics(42, 250, 0.05)
-    assert result["d_plus"] == result["d_minus"] == pytest.approx(0.002)
-    assert result["tests"][0]["statistic"] == pytest.approx(
-        stats.kstest(values, "uniform").statistic
-    )
-    assert result["frequencies"] == [25] * 10
-    assert result["tests"][1]["statistic"] == 0
-    assert result["tests"][2]["statistic"] == 500
-    assert result["tests"][2]["decision"] == "reject"
-    assert result["series_expected_frequency"] == 5 and sum(result["series_frequencies"]) == 125
-
-
-def test_generator_reproducibility_and_valid_probabilities_without_demanding_all_tests_pass():
-    first = generator_diagnostics(2026, 1001, 0.05)
-    second = generator_diagnostics(2026, 1001, 0.05)
-    assert first == second
-    assert first["series_pairs"] == 500
-    assert all(0 <= test["p_value"] <= 1 for test in first["tests"])
-    assert all(0 <= value < 1 for value in first["uniforms"])
-    assert first["mean"] == pytest.approx(sum(first["uniforms"]) / 1001)
 
 
 def test_model_diagnostics_handle_small_constant_samples_and_do_not_cross_gaps():

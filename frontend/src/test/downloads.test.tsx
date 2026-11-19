@@ -1,9 +1,8 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import { downloadWorkbook } from "../api";
 import ExportButton from "../ExportButton";
-import ExportsPage from "../ExportsPage";
 
 const mime =
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -119,35 +118,4 @@ it("el botón maneja errores, reintento y cuerpo de exportación de simulaciones
     experiment_id: "synthetic-id",
     include_paths: true,
   });
-});
-
-it("el centro de exportaciones enlaza módulos y exige identificadores válidos", async () => {
-  browserDownload();
-  const user = userEvent.setup();
-  const navigate = vi.fn();
-  const fetch = vi.fn().mockResolvedValue(response());
-  vi.stubGlobal("fetch", fetch);
-  render(<ExportsPage navigate={navigate} />);
-  expect(
-    screen.getByRole("button", { name: "Descargar resultado guardado" }),
-  ).toBeDisabled();
-  await user.click(
-    screen.getByRole("button", { name: "Abrir comparación de periodos →" }),
-  );
-  expect(navigate).toHaveBeenCalledWith("comparison");
-  fireEvent.change(screen.getByLabelText("Identificador del resultado"), {
-    target: { value: "00000000-0000-4000-8000-000000000001" },
-  });
-  await user.click(
-    screen.getByRole("checkbox", {
-      name: "Incluir todas las trayectorias guardadas",
-    }),
-  );
-  await user.click(
-    screen.getByRole("button", { name: "Descargar resultado guardado" }),
-  );
-  await waitFor(() => expect(fetch).toHaveBeenCalled());
-  expect(JSON.parse(String(fetch.mock.calls[0][1].body)).include_paths).toBe(
-    false,
-  );
 });

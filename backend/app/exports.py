@@ -15,12 +15,11 @@ from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
 
 from app.backtesting import get_backtest
-from app.comparison import compare_records
 from app.config import CATALOG_URL, SOURCE_NAME, now_bogota
 from app.db import Database
 from app.queries import where_filter
 from app.records import Record, digest, normalize
-from app.schemas import ComparisonQuery, HistoryFilter, SimulationOut, StatisticsQuery
+from app.schemas import HistoryFilter, RollingOut, SimulationOut, StatisticsQuery
 from app.statistics import analyze_records
 
 MIME_XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
@@ -41,7 +40,7 @@ LABELS = {
     "q1": "Cuartil 1",
     "q3": "Cuartil 3",
     "iqr": "Rango intercuartílico",
-    "coefficient_variation_pct": "Coeficiente de variación",
+    "coefficient_variation_pct": "Coeficiente de variación (%)",
     "initial_value": "Primer valor",
     "final_value": "Último valor",
     "absolute_change": "Cambio absoluto",
@@ -49,7 +48,7 @@ LABELS = {
     "cumulative_return": "Rendimiento acumulado",
     "volatility": "Volatilidad logarítmica sin anualizar",
 }
-METHODS = {"monte_carlo": "Montecarlo", "bootstrap": "Bootstrap"}
+METHODS = {"monte_carlo": "Montecarlo", "bootstrap": "Bootstrap", "arima": "ARIMA(1,1,0)"}
 
 
 class ExportError(ValueError):
@@ -383,86 +382,14 @@ def export_statistics(db: Database, query: StatisticsQuery) -> bytes:
     return book.finish(metadata)
 
 
-def export_comparison(db: Database, query: ComparisonQuery) -> bytes:
-    samples, metadata = load_snapshot(
-        db,
-        [
-            HistoryFilter(start=query.a_start, end=query.a_end),
-            HistoryFilter(start=query.b_start, end=query.b_end),
-        ],
-    )
-    today = now_bogota().date()
-    result = compare_records(samples[0], samples[1], query, today)
-    book = ExcelBook("Comparación de periodos TRM")
-
-    def rows():
-        for row in result["differences"]:
-            fraction = row["unit"] == "fraction"
-            fmt = PERCENT if fraction else "0" if row["unit"] == "count" else DECIMAL
-            delta = row["delta"] * 100 if fraction and row["delta"] is not None else row["delta"]
-            yield (
-                LABELS.get(row["metric"], row["metric"]),
-                row["unit"],
-                ExcelValue(row["a"], fmt),
-                ExcelValue(row["b"], fmt),
-                ExcelValue(delta, DECIMAL if fraction else fmt),
-                "pp" if fraction else row["unit"],
-                ExcelValue(row["relative_delta"], PERCENT),
-            )
-
-    book.table(
-        "Comparacion",
-        [
-            "Indicador",
-            "Unidad A y B",
-            "Periodo A",
-            "Periodo B",
-            "B menos A",
-            "Unidad diferencia",
-            "Diferencia relativa",
-        ],
-        rows(),
-        widths=[40, 20, 24, 24, 24, 22, 24],
-    )
-    for id, records in zip(["A", "B"], samples, strict=True):
-        add_records(book, "Periodo " + id, [row for row in records if row.valid_from <= today])
-    book.table(
-        "Alineacion",
-        ["Posición", "Fecha A", "COP/USD A", "Base 100 A", "Fecha B", "COP/USD B", "Base 100 B"],
-        (
-            (
-                row["position"],
-                date.fromisoformat(row["a"]["effective_date"]) if row["a"] else None,
-                float(row["a"]["value"]) if row["a"] else None,
-                row["a"]["normalized"] if row["a"] else None,
-                date.fromisoformat(row["b"]["effective_date"]) if row["b"] else None,
-                float(row["b"]["value"]) if row["b"] else None,
-                row["b"]["normalized"] if row["b"] else None,
-            )
-            for row in result["rows"]
-        ),
-        formats=["0", "General", MONEY, DECIMAL, "General", MONEY, DECIMAL],
-    )
-    metadata += flat_items(query.model_dump(), "Consulta") + [
-        ("SHA-256 comparación", result["dataset_fingerprint"]),
-        ("Procedimiento", result["convention"]),
-        ("Interpretación", result["interpretation"]),
-    ]
-    metadata += flat_items(
-        {
-            "Advertencia": result["warnings"],
-            "Advertencia A": result["a"]["warnings"],
-            "Advertencia B": result["b"]["warnings"],
-        }
-    )
-    return book.finish(metadata)
-
-
 def export_simulation(db: Database, id: str, include_paths: bool = True) -> bytes | None:
     with db.connect() as connection:
         stored = connection.execute(
             "SELECT result_json,snapshot_json,paths_npz FROM simulation_experiments WHERE id=?",
             (id,),
+        ).fetchone()
+        saved_projection = connection.execute(
+            "SELECT result_json FROM projections WHERE id=?", (id,)
         ).fetchone()
     if stored is None:
         return None
@@ -568,6 +495,18 @@ def export_simulation(db: Database, id: str, include_paths: bool = True) -> byte
         ("Procedimiento", experiment.convention),
     ]
     metadata += flat_items({"Advertencia": experiment.warnings})
+    if saved_projection:
+        projection = json.loads(saved_projection[0])
+        metadata += [
+            ("Uso", "Proyección de la TRM"),
+            ("Estimación central", "Mediana de todas las réplicas"),
+            ("Mediana estimada COP/USD", projection["estimate"]),
+            ("P5 COP/USD", projection["lower"]),
+            ("P95 COP/USD", projection["upper"]),
+            ("Variación COP/USD", projection["change"]),
+            ("Variación relativa", projection["relative_change"]),
+            ("Convención de proyección", projection["convention"]),
+        ]
     return book.finish(metadata)
 
 
@@ -653,7 +592,7 @@ def export_backtest(db: Database, id: str) -> bytes | None:
     add_records(
         book, "Entrenamiento", [normalize(raw) for raw in json.loads(training["snapshot_json"])]
     )
-    tests = list(result.generator_diagnostics.tests) + [result.model_diagnostics.normality]
+    tests = [result.model_diagnostics.normality]
     book.table(
         "Diagnosticos",
         ["Prueba", "Hipótesis nula", "Estadístico", "Valor p", "Alpha", "Decisión", "Alcance"],
@@ -672,12 +611,6 @@ def export_backtest(db: Database, id: str) -> bytes | None:
         formats=["General", "General", DECIMAL, "0.000000", PERCENT, "General", "General"],
         widths=[30, 60, 25, 22, 18, 25, 100],
     )
-    book.table(
-        "Uniformes diagnosticos",
-        ["Índice", "Uniforme pseudoaleatorio (no TRM)"],
-        enumerate(result.generator_diagnostics.uniforms, 1),
-        formats=["0", "0.0000000000"],
-    )
     metadata = flat_items(result.request.model_dump(), "Solicitud") + [
         ("Identificador validación", result.id),
         ("Experimento asociado", result.experiment_id),
@@ -690,15 +623,113 @@ def export_backtest(db: Database, id: str) -> bytes | None:
         ("Ejecución original", datetime.fromisoformat(result.created_at)),
         ("Interpretación", result.interpretation),
         ("Procedimiento", result.convention),
-        ("Diagnóstico generador", result.generator_diagnostics.convention),
         ("Diagnóstico modelo", result.model_diagnostics.convention),
-        ("D+", result.generator_diagnostics.d_plus),
-        ("D−", result.generator_diagnostics.d_minus),
-        ("Media uniformes", result.generator_diagnostics.mean),
-        ("Varianza muestral uniformes", result.generator_diagnostics.sample_variance),
         ("Correlación rezago 1", result.model_diagnostics.lag_one_correlation),
         ("Pares de correlación", result.model_diagnostics.correlation_pairs),
         ("Extremos conservados", result.model_diagnostics.outlier_count),
     ]
     metadata += flat_items({"Advertencia": result.warnings})
     return book.finish(metadata)
+
+
+def export_rolling(db: Database, id: str) -> bytes | None:
+    with db.connect() as connection:
+        saved = connection.execute(
+            "SELECT result_json,evaluation_snapshot_json FROM rolling_evaluations WHERE id=?", (id,)
+        ).fetchone()
+        if saved is None:
+            return None
+        result = RollingOut.model_validate_json(saved[0])
+        training = [
+            connection.execute(
+                "SELECT snapshot_json FROM simulation_experiments WHERE id=?", (case.experiment_id,)
+            ).fetchone()[0]
+            for case in result.cases
+        ]
+    book = ExcelBook("Evaluación de proyecciones TRM")
+    book.table(
+        "Errores por horizonte",
+        [
+            "Horizonte (vigencias)",
+            "Cortes",
+            "MAE modelo",
+            "MAE persistencia",
+            "RMSE modelo",
+            "RMSE persistencia",
+            "Cobertura P5-P95",
+            "Amplitud media COP/USD",
+        ],
+        [
+            (
+                r.horizon,
+                r.count,
+                r.model.mae,
+                r.baseline.mae,
+                r.model.rmse,
+                r.baseline.rmse,
+                r.model.coverage,
+                r.mean_width,
+            )
+            for r in result.summaries
+        ],
+        formats=["General", "General", MONEY, MONEY, MONEY, MONEY, PERCENT, MONEY],
+    )
+    book.table(
+        "Valores por corte",
+        [
+            "Corte",
+            "Fecha observada",
+            "Horizonte",
+            "Inicial",
+            "Mediana estimada",
+            "Real",
+            "P5",
+            "P95",
+            "Experimento",
+        ],
+        [
+            (
+                c.cutoff,
+                c.target,
+                c.horizon,
+                c.initial,
+                c.predicted,
+                c.actual,
+                c.lower,
+                c.upper,
+                c.experiment_id,
+            )
+            for c in result.cases
+        ],
+        formats=["General"] * 3 + [MONEY] * 5 + ["General"],
+    )
+    for name, snapshots in [
+        ("Entrenamiento", [json.loads(s) for s in training]),
+        ("Evaluacion", json.loads(saved[1])),
+    ]:
+        book.table(
+            name,
+            ["Experimento", "Desde", "Hasta", "TRM COP/USD", "Huella"],
+            (
+                (
+                    case.experiment_id,
+                    record.valid_from,
+                    record.valid_to,
+                    record.value,
+                    record.fingerprint,
+                )
+                for case, snapshot in zip(result.cases, snapshots, strict=True)
+                for record in [normalize(raw) for raw in snapshot]
+            ),
+            formats=["General", "General", "General", MONEY, "General"],
+        )
+    return book.finish(
+        [
+            ("Evaluación", result.id),
+            ("Procedimiento", result.convention),
+            ("Realizada", result.created_at),
+            ("Cortes omitidos", result.skipped),
+            *flat_items(result.request.model_dump(), "Solicitud"),
+            *flat_items({"Advertencia": result.warnings}),
+        ]
+    )
