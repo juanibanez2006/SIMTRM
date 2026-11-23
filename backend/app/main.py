@@ -12,8 +12,11 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
+from fastapi.staticfiles import StaticFiles
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.gzip import GZipMiddleware
 
+from app.access import ownership_filter
 from app.automatic import AutomaticSync
 from app.backtesting import create_backtest, get_backtest
 from app.banrep import BanrepClient
@@ -30,6 +33,7 @@ from app.exports import (
 )
 from app.projection import create_projection, create_rolling
 from app.projection_exports import export_projection, export_scenarios
+from app.public import PublicAccessMiddleware
 from app.queries import (
     data_status,
     latest,
@@ -90,13 +94,22 @@ def create_app(settings: Settings | None = None, source_factory=None) -> FastAPI
                 worker.stop()
                 await asyncio.to_thread(worker.join)
 
-    app = FastAPI(title="SIMTRM", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(
+        title="SIMTRM", version="0.1.0", lifespan=lifespan,
+        docs_url=None if settings.public_mode else "/docs",
+        redoc_url=None if settings.public_mode else "/redoc",
+        openapi_url=None if settings.public_mode else "/openapi.json",
+    )
     app.state.db = db
     app.state.simulation_lock = threading.Lock()
     app.state.export_lock = threading.Lock()
+    if settings.public_mode:
+        app.state.export_lock = app.state.simulation_lock
+        app.add_middleware(PublicAccessMiddleware, settings=settings, db=db)
+        app.add_middleware(GZipMiddleware, minimum_size=1000)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.cors_origins,
+        allow_origins=[settings.public_origin] if settings.public_mode else settings.cors_origins,
         allow_methods=["GET", "POST"],
         allow_headers=["Content-Type", "X-Admin-Token"],
         expose_headers=["Content-Disposition"],
@@ -151,6 +164,12 @@ def create_app(settings: Settings | None = None, source_factory=None) -> FastAPI
     @app.get("/api/v1/data/status", response_model=DataStatus)
     def status():
         result = data_status(db, settings)
+        result["manual_sync_available"] = not settings.public_mode
+        result["private_experiments"] = settings.public_mode
+        if settings.public_mode and result["last_attempt"] and result["last_attempt"]["error"]:
+            result["last_attempt"]["error"] = (
+                "No fue posible actualizar la fuente oficial; se conserva el histórico anterior"
+            )
         result["checked_at"] = now_bogota().isoformat()
         return result
 
@@ -158,7 +177,8 @@ def create_app(settings: Settings | None = None, source_factory=None) -> FastAPI
     def sync(body: SyncRequest, request: Request):
         token = settings.admin_token.get_secret_value() if settings.admin_token else ""
         origin = request.headers.get("origin")
-        if origin and origin not in settings.cors_origins:
+        origins = [settings.public_origin] if settings.public_mode else settings.cors_origins
+        if origin and origin not in origins:
             raise HTTPException(403, "Origen no autorizado para sincronizar")
         if token:
             if not secrets.compare_digest(request.headers.get("x-admin-token", ""), token):
@@ -287,7 +307,8 @@ def create_app(settings: Settings | None = None, source_factory=None) -> FastAPI
                 ("backtest", "backtests"),
             ]:
                 if kind == "simulation":
-                    rows = connection.execute("""
+                    access, access_params = ownership_filter("s")
+                    query = """
                         SELECT s.result_json FROM simulation_experiments s
                         WHERE NOT EXISTS(SELECT 1 FROM projections p WHERE p.id=s.id)
                         AND NOT EXISTS(SELECT 1 FROM backtests b
@@ -295,11 +316,18 @@ def create_app(settings: Settings | None = None, source_factory=None) -> FastAPI
                         AND NOT EXISTS(SELECT 1 FROM rolling_evaluations r,
                             json_each(r.result_json,'$.cases') c
                             WHERE json_extract(c.value,'$.experiment_id')=s.id)
-                        ORDER BY s.rowid DESC LIMIT 20
-                    """).fetchall()
-                else:
+                    """
+                    if access:
+                        query += " AND " + access
                     rows = connection.execute(
-                        f"SELECT result_json FROM {table_name} ORDER BY rowid DESC LIMIT 20"
+                        query + " ORDER BY s.rowid DESC LIMIT 20", access_params
+                    ).fetchall()
+                else:
+                    access, access_params = ownership_filter(table_name)
+                    rows = connection.execute(
+                        f"SELECT result_json FROM {table_name}"
+                        + (" WHERE " + access if access else "")
+                        + " ORDER BY rowid DESC LIMIT 20", access_params,
                     ).fetchall()
                 for row in rows:
                     data = json.loads(row[0])
@@ -418,6 +446,12 @@ def create_app(settings: Settings | None = None, source_factory=None) -> FastAPI
     def rolling_excel(id: UUID):
         return download(lambda: export_rolling(db, str(id)), f"SIMTRM_evaluacion_{id}.xlsx")
 
+    if settings.frontend_dist_path is not None:
+        if not (settings.frontend_dist_path / "index.html").is_file():
+            raise RuntimeError("No se encontró el frontend compilado")
+        app.mount(
+            "/", StaticFiles(directory=settings.frontend_dist_path, html=True), name="frontend"
+        )
     return app
 
 

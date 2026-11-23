@@ -34,4 +34,5 @@ frontend/playwright-report/
 .vs/
 .vscode/
 .DS_Store
+.railway/
 Thumbs.db

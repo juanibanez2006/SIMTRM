@@ -44,6 +44,8 @@ export interface DataStatus {
   auto_sync_enabled?: boolean;
   auto_sync_interval_hours?: number;
   next_auto_check_at?: string | null;
+  manual_sync_available?: boolean;
+  private_experiments?: boolean;
 }
 
 export interface Latest {

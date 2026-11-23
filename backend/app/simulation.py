@@ -7,6 +7,7 @@ from datetime import date
 import numpy as np
 from numpy.typing import NDArray
 
+from app.access import own_experiment
 from app.config import SOURCE_NAME, now_bogota
 from app.db import Database
 from app.queries import where_filter
@@ -332,6 +333,7 @@ def save_experiment(
     db: Database, result: SimulationOut, archive: bytes, records: list[Record]
 ) -> None:
     with db.connect() as connection:
+        own_experiment(connection, result.id)
         connection.execute(
             "INSERT INTO simulation_experiments VALUES(?,?,?,?,?,?)",
             (

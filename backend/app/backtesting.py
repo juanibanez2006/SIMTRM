@@ -5,6 +5,7 @@ from datetime import date, timedelta
 import numpy as np
 import scipy
 
+from app.access import own_experiment
 from app.config import SOURCE_NAME, now_bogota
 from app.db import Database
 from app.diagnostics import model_diagnostics
@@ -174,6 +175,8 @@ def create_backtest(db: Database, request: BacktestRequest) -> BacktestOut:
     result, observed = evaluate_experiment(experiment, selected, records, request, today)
     # Persist both immutable samples and complete simulated matrices in one transaction.
     with db.connect() as connection:
+        own_experiment(connection, experiment.id)
+        own_experiment(connection, result.id)
         save_experiment_values = (
             experiment.id,
             experiment.created_at,

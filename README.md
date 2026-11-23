@@ -115,7 +115,32 @@ Edite `backend/.env`, partiendo de `backend/.env.example`:
 
 `SYNC_LOOKBACK_DAYS` se conserva para la compatibilidad del servicio incremental; no limita la instantánea completa del conector SDMX. Nunca publique `.env`, credenciales o bases de datos ni coloque secretos en variables `VITE_*`.
 
-La configuración suministrada es para **uso local**. Una exposición pública requiere autenticación, control de acceso, protección del servicio y límites por usuario. Los bloqueos de cálculo y exportación impiden trabajos pesados simultáneos en una instancia; una solicitud competidora recibe un mensaje para reintentar. No se incluye alojamiento público ni una cola distribuida.
+La ejecución con Vite y los scripts de PowerShell sigue siendo para **uso local**. La imagen Docker incorpora una configuración independiente para el alojamiento público descrito a continuación. No se incluye una cola distribuida ni se admite escalar SQLite a varias réplicas.
+
+## Producción en Railway
+
+El `Dockerfile` compila React con Node.js 24 y copia únicamente el resultado a una imagen Python 3.13. FastAPI sirve la interfaz y `/api/v1` desde el mismo dominio; Vite no se ejecuta en producción. `scripts/start-production.py` inicia Uvicorn en `0.0.0.0:$PORT`, con un proceso, y en Railway cambia al usuario sin privilegios después de preparar los permisos del volumen. El servicio utiliza una réplica, 1 vCPU, un límite de 1 GB de memoria, comprobación `/api/v1/health`, reinicio ante fallos y suspensión por inactividad desactivada.
+
+SQLite se almacena en **`/data/simtrm.sqlite3`**, dentro del volumen persistente de 500 MB del servicio. La imagen no contiene el histórico ni los experimentos locales. Al iniciar, se comprueba que Railway haya montado el volumen y que la base esté dentro de él; un error impide arrancar sobre almacenamiento efímero. Las matrices, instantáneas y permisos de los experimentos permanecen en esa base durante reinicios y despliegues. La primera actualización descarga los datos oficiales y las siguientes se comprueban cada hora. Un fallo conserva los datos válidos anteriores; no se sustituyen por ejemplos.
+
+Variables del servicio, administradas en Railway:
+
+| Variable | Configuración de producción |
+| --- | --- |
+| `PUBLIC_MODE` | `true`; activa las protecciones públicas. |
+| `PUBLIC_ORIGIN` | Origen HTTPS exacto del dominio publicado. |
+| `DATABASE_PATH` | `/data/simtrm.sqlite3`. |
+| `FRONTEND_DIST_PATH` | `/app/frontend/dist`. |
+| `SESSION_SECRET` | Secreto aleatorio de al menos 32 caracteres; conservar entre versiones. |
+| `ADMIN_TOKEN` | Clave administrativa independiente, aleatoria, de al menos 32 caracteres. |
+| `AUTO_SYNC_ENABLED` / `AUTO_SYNC_INTERVAL_HOURS` | `true` / `1`. |
+| `SOURCE_TIMEOUT_SECONDS` / `SOURCE_RETRIES` | `60` / `3`, manteniendo la verificación TLS. |
+| `WEB_CONCURRENCY` | `1`; el arranque rechaza varios procesos. |
+| `PORT` | Puerto del servicio, configurado en `8080` y vinculado al dominio. |
+
+El acceso de evaluación no requiere cuentas. Una cookie firmada, `Secure`, `HttpOnly` y `SameSite=Lax` identifica el navegador durante 30 días. Cada visitante solo puede listar, abrir, reproducir y exportar sus propios análisis, incluidas sus validaciones asociadas. **Conserve las cookies para recuperar ese historial**: otro navegador o equipo inicia un historial independiente. Cambiar `SESSION_SECRET` invalida las sesiones existentes, aunque los datos sigan almacenados. El modo local conserva su historial compartido anterior.
+
+La actualización manual exige `ADMIN_TOKEN` y no se ofrece en la interfaz pública. La documentación interactiva de la API se desactiva, se restringen dominio y origen, se limitan cuerpos a 64 KiB y se envían cabeceras de seguridad. Los datos oficiales siguen siendo de consulta pública. Los cálculos y las exportaciones comparten un bloqueo de memoria: se ejecuta un trabajo pesado a la vez. Se permiten 60 trabajos por hora y navegador, con un máximo global de 120, y 120 consultas por minuto y navegador. Los límites devuelven `429` con tiempo de reintento; no alteran las fórmulas ni los modelos. Con menos de 128 MiB libres se bloquean nuevos cálculos, conservando la consulta y descarga de resultados existentes. Conviene vigilar el espacio y configurar las copias de seguridad del volumen desde Railway.
 
 ## Tecnologías y comprobaciones
 

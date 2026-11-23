@@ -3,6 +3,7 @@ import json
 from datetime import date, timedelta
 from decimal import Decimal
 
+from app.access import ownership_filter
 from app.config import CATALOG_URL, SOURCE_NAME, Settings, now_bogota
 from app.db import Database
 from app.records import digest
@@ -20,6 +21,9 @@ def rolling_history(db: Database, query: RollingHistoryQuery) -> dict:
                coalesce(json_extract(result_json, '$.request.unit'), 'transitions') AS unit
         FROM rolling_evaluations
     """
+    access, access_params = ownership_filter("rolling_evaluations")
+    if access:
+        metadata += " WHERE " + access
     # Explicit offsets are normalized to Colombia. Older naive timestamps were local.
     has_offset = """length(created_at) > 19 AND
         (substr(created_at, -1) = 'Z' OR instr(substr(created_at, 20), '+') > 0
@@ -28,7 +32,7 @@ def rolling_history(db: Database, query: RollingHistoryQuery) -> dict:
                     ELSE substr(created_at, 1, 10) END"""
     created_order = f"""CASE WHEN {has_offset} THEN julianday(created_at)
                         ELSE julianday(created_at, '+5 hours') END"""
-    clauses, params = [], []
+    clauses, params = [], list(access_params)
     for value, expression in (
         (str(query.start) if query.start else None, f"({local_day}) >= ?"),
         (str(query.end) if query.end else None, f"({local_day}) <= ?"),

@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 import numpy as np
 
 from app import trm_calendar
+from app.access import own_experiment
 from app.backtesting import evaluation_metrics
 from app.config import now_bogota
 from app.db import Database
@@ -113,6 +114,7 @@ def project(
 
 
 def insert_experiment(connection, experiment, archive, training):
+    own_experiment(connection, experiment.id)
     connection.execute(
         "INSERT INTO simulation_experiments VALUES(?,?,?,?,?,?)",
         (
@@ -294,6 +296,7 @@ def create_rolling(db: Database, request: RollingRequest) -> RollingOut:
 
 
 def save_evaluation(connection, result, experiments, snapshots):
+    own_experiment(connection, result.id)
     for values in experiments:
         insert_experiment(connection, *values)
     connection.execute(

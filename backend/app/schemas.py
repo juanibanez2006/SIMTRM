@@ -114,6 +114,8 @@ class DataStatus(BaseModel):
     auto_sync_enabled: bool = False
     auto_sync_interval_hours: float = 6
     next_auto_check_at: str | None = None
+    manual_sync_available: bool = True
+    private_experiments: bool = False
 
 
 class StatisticsQuery(HistoryFilter):

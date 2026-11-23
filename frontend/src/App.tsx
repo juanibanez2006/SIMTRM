@@ -128,6 +128,9 @@ export default function App() {
               Consultando datos oficiales…
             </p>
           )}
+          {local.status?.private_experiments && <p className="session-note">
+            El historial de análisis es privado para este navegador. Conserve sus cookies para recuperar los resultados guardados.
+          </p>}
           <Activity mode={page === "home" ? "visible" : "hidden"}>
             {local.latest && (
               <ProjectionPage

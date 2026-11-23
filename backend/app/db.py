@@ -83,4 +83,9 @@ class Database:
                     result_json TEXT NOT NULL,
                     evaluation_snapshot_json TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS experiment_owners (
+                    experiment_id TEXT PRIMARY KEY,
+                    visitor TEXT NOT NULL
+                );
+                CREATE INDEX IF NOT EXISTS experiment_owner_index ON experiment_owners(visitor);
             """)

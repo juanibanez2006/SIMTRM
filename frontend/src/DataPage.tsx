@@ -139,7 +139,7 @@ export default function DataPage({
             de proyectar.
           </p>
         )}
-        <details>
+        {status.manual_sync_available !== false ? <details>
           <summary>Actualizar histórico oficial</summary>
           <form
             onSubmit={(e) => {
@@ -170,7 +170,7 @@ export default function DataPage({
             </p>
           )}
           {message && <p role="status">{message}</p>}
-        </details>
+        </details> : <p>El histórico oficial se actualiza automáticamente. La actualización manual está reservada a la administración.</p>}
         <details>
           <summary>Integridad y actualización automática</summary>
           <p>
