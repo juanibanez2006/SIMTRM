@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { request } from "./api";
+import { timestamp } from "./format";
 import ValidationResults from "./ValidationResults";
+import EvaluationHistory from "./EvaluationHistory";
 import { defaultProjection } from "./projectionSettings";
 import type { ProjectionSettings, RollingEvaluation } from "./types";
 
@@ -14,17 +16,26 @@ export default function RollingValidation({
   const [settings, setSettings] = useState<ProjectionSettings>(
     initialSettings ? {...initialSettings, training_start: null, training_end: null} : defaultProjection,
   );
-  const [horizons, setHorizons] = useState(
-    initialSettings
-      ? [...new Set([7, 30, 90])].sort((a, b) => a - b).join(",")
-      : "7,30,90",
-  );
+  const [horizons, setHorizons] = useState("7,30,90");
+  const [unit, setUnit] = useState<"calendar_days" | "transitions">("calendar_days");
   const [folds, setFolds] = useState(6);
   const [result, setResult] = useState<RollingEvaluation | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [operation, setOperation] = useState<"open" | "run" | null>(null);
+  const busy = operation !== null;
   const [error, setError] = useState("");
-  const [id, setId] = useState("");
   const [cutoff, setCutoff] = useState("");
+  const [revision, setRevision] = useState(0);
+  const [message, setMessage] = useState("");
+  const form = useRef<HTMLFormElement>(null);
+  const output = useRef<HTMLDivElement>(null);
+  const focusedResult = useRef<RollingEvaluation | null>(null);
+  useEffect(() => {
+    if (result && focusedResult.current !== result) {
+      focusedResult.current = result;
+      output.current?.focus({ preventScroll: true });
+      output.current?.scrollIntoView?.({ block: "start" });
+    }
+  }, [result]);
   const parsedHorizons = horizons.split(",").map((s) => Number(s.trim()));
   const dirty =
     result &&
@@ -32,33 +43,60 @@ export default function RollingValidation({
       ([key, value]) => settings[key as keyof ProjectionSettings] !== value,
     ) ||
       String(result.request.horizons) !== String(parsedHorizons) ||
-      folds !== result.request.folds || cutoff !== (result.request.last_cutoff ?? ""));
-  async function run(recover = false) {
-    setBusy(true);
+      folds !== result.request.folds || cutoff !== (result.request.last_cutoff ?? "") ||
+      unit !== (result.request.unit ?? "transitions"));
+  function editConfiguration() {
+    form.current?.focus({ preventScroll: true });
+    form.current?.scrollIntoView?.({ block: "start" });
+  }
+  function reuse() {
+    if (!result) return;
+    setSettings({ ...result.request.settings });
+    setHorizons(result.request.horizons.join(","));
+    setFolds(result.request.folds);
+    setCutoff(result.request.last_cutoff ?? "");
+    setUnit(result.request.unit ?? "transitions");
+    setMessage("Configuración cargada. Puede ajustarla y ejecutar una nueva evaluación.");
+    editConfiguration();
+  }
+  async function recover(id: string) {
+    setOperation("open");
     setError("");
+    setMessage("");
+    try {
+      setResult(await request<RollingEvaluation>(`/validations/rolling/${id}`));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No fue posible abrir la evaluación");
+    } finally {
+      setOperation(null);
+    }
+  }
+  async function run() {
+    setOperation("run");
+    setError("");
+    setMessage("");
     try {
       const next = await request<RollingEvaluation>(
-        recover ? `/validations/rolling/${id}` : "/validations/rolling",
-        recover
-          ? undefined
-          : {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                settings,
-                unit: "calendar_days",
-                horizons: parsedHorizons,
-                folds,
-                last_cutoff: cutoff || null,
-              }),
-            },
+        "/validations/rolling",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            settings,
+            unit,
+            horizons: parsedHorizons,
+            folds,
+            last_cutoff: cutoff || null,
+          }),
+        },
       );
       setResult(next);
-      setId(next.id);
       setSettings(next.request.settings);
       setHorizons(next.request.horizons.join(","));
       setFolds(next.request.folds);
       setCutoff(next.request.last_cutoff ?? "");
+      setUnit(next.request.unit ?? "transitions");
+      setRevision(n => n + 1);
     } catch (err) {
       setError(
         err instanceof Error
@@ -66,12 +104,20 @@ export default function RollingValidation({
           : "No fue posible evaluar las proyecciones",
       );
     } finally {
-      setBusy(false);
+      setOperation(null);
     }
   }
   return (
     <section className="rolling-validation">
+      <EvaluationHistory revision={revision} selectedId={result?.id} busy={busy}
+        onOpen={recover} onNew={editConfiguration} />
+      {operation === "open" && <p role="status">Abriendo evaluación guardada…</p>}
+      {error && <div className="error-box" role="alert">{error}</div>}
+      {message && <p role="status" className="configuration-message">{message}</p>}
       <form
+        ref={form}
+        tabIndex={-1}
+        aria-label="Configurar evaluación"
         className="panel simulation-form"
         onSubmit={(e) => {
           e.preventDefault();
@@ -127,12 +173,18 @@ export default function RollingValidation({
               />
             </label>
             <label>
-              Horizontes en días calendario (separados por coma)
+              Horizontes en {unit === "calendar_days" ? "días calendario" : "transiciones"} (separados por coma)
               <input
                 required
                 value={horizons}
                 onChange={(e) => setHorizons(e.target.value)}
               />
+            </label>
+            <label>Unidad de evaluación
+              <select value={unit} onChange={e => setUnit(e.target.value as typeof unit)}>
+                <option value="calendar_days">Días calendario</option>
+                <option value="transitions">Transiciones entre vigencias</option>
+              </select>
             </label>
             <label>
               Cortes solicitados
@@ -189,7 +241,7 @@ export default function RollingValidation({
         </fieldset>
         <div className="simulation-actions">
           <p>
-            Horizontes entre 1 y 365 días calendario. Los cortes más recientes
+            Horizontes entre 1 y 365 {unit === "calendar_days" ? "días calendario" : "transiciones"}. Los cortes más recientes
             se separan por el mayor horizonte solicitado; no se seleccionan
             según el error obtenido.
           </p>
@@ -198,41 +250,24 @@ export default function RollingValidation({
             className="primary"
             disabled={busy || !available}
           >
-            {busy ? "Evaluando…" : "Evaluar varios cortes"}
+            {operation === "run" ? "Evaluando…" : "Evaluar varios cortes"}
           </button>
         </div>
       </form>
-      {error && (
-        <div className="error-box" role="alert">
-          {error}
-        </div>
-      )}
       {dirty && (
         <p role="status" className="comparison-draft">
           Parámetros modificados. Los resultados conservan la configuración
           indicada en su evaluación.
         </p>
       )}
-      {result && <ValidationResults result={result} />}
-      <details className="panel analysis-audit">
-        <summary>Recuperar evaluación guardada</summary>
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            void run(true);
-          }}
-        >
-          <label>
-            Identificador de evaluación
-            <input
-              required
-              value={id}
-              onChange={(e) => setId(e.target.value)}
-            />
-          </label>
-          <button disabled={busy}>Consultar evaluación</button>
-        </form>
-      </details>
+      {result && <div ref={output} tabIndex={-1} className="evaluation-output">
+        <div className="panel analysis-audit evaluation-selection">
+          <div><h2>Evaluación del {timestamp(result.created_at)}</h2>
+            <p>Resultados originales guardados. Usar su configuración prepara una nueva ejecución.</p></div>
+          <button type="button" disabled={busy} onClick={reuse}>Usar esta configuración</button>
+        </div>
+        <ValidationResults key={result.id} result={result} />
+      </div>}
     </section>
   );
 }

@@ -561,3 +561,37 @@ class RollingOut(BaseModel):
     skipped: int
     convention: str
     warnings: list[str]
+
+
+class RollingHistoryQuery(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    q: str = Field(default="", max_length=100)
+    start: date | None = None
+    end: date | None = None
+    method: Literal["monte_carlo", "bootstrap", "arima"] | None = None
+    horizon: int | None = Field(default=None, ge=1, le=365)
+    unit: Literal["transitions", "calendar_days"] | None = None
+    page: int = Field(default=1, ge=1, le=1000000)
+    page_size: int = Field(default=20, ge=1, le=100)
+
+    @model_validator(mode="after")
+    def valid_dates(self):
+        if self.start and self.end and self.start > self.end:
+            raise ValueError("La fecha inicial debe ser anterior o igual a la final")
+        return self
+
+
+class RollingHistoryEntry(BaseModel):
+    id: str
+    created_at: str
+    request: RollingRequest
+    evaluated_folds: int
+    skipped: int
+
+
+class RollingHistoryOut(BaseModel):
+    items: list[RollingHistoryEntry]
+    total: int
+    page: int
+    page_size: int
+    pages: int

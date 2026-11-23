@@ -172,6 +172,22 @@ export interface RollingEvaluation {
   warnings: string[];
 }
 
+export interface EvaluationHistoryEntry {
+  id: string;
+  created_at: string;
+  request: RollingEvaluation["request"];
+  evaluated_folds: number;
+  skipped: number;
+}
+
+export interface EvaluationHistoryPage {
+  items: EvaluationHistoryEntry[];
+  total: number;
+  page: number;
+  page_size: number;
+  pages: number;
+}
+
 export type AnalysisVariable = "price" | "simple_return" | "log_return";
 
 export interface Statistics {

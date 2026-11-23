@@ -13,7 +13,9 @@ vi.mock("../PlotChart", () => ({
 let fetchMock: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   fetchMock = vi.fn(async (path: string) =>
-    Response.json(path.endsWith("/experiments") ? [] : projection),
+    Response.json(path.includes("/validations/rolling?")
+      ? {items: [], total: 0, page: 1, page_size: 5, pages: 0}
+      : path.endsWith("/experiments") ? [] : projection),
   );
   vi.stubGlobal("fetch", fetchMock);
 });
@@ -98,7 +100,8 @@ it("la línea naranja empieza exactamente en el precio oficial y termina en la m
 });
 it("evalúa plazos calendario y presenta errores, modelo y vigencia real", async () => {
   const user = userEvent.setup();
-  fetchMock.mockResolvedValue(Response.json(rolling));
+  fetchMock.mockImplementation(async (path: string) => Response.json(path.includes("/validations/rolling?")
+    ? {items: [], total: 0, page: 1, page_size: 5, pages: 0} : rolling));
   render(<RollingValidation available initialSettings={projection.request} />);
   await user.click(
     screen.getByRole("button", { name: "Evaluar varios cortes" }),
@@ -107,7 +110,7 @@ it("evalúa plazos calendario y presenta errores, modelo y vigencia real", async
     name: "Errores por horizonte frente a persistencia",
   });
   expect(screen.queryByText(/Parámetros modificados/)).not.toBeInTheDocument();
-  expect(JSON.parse(fetchMock.mock.calls[0][1].body).unit).toBe(
+  expect(JSON.parse(fetchMock.mock.calls.find(([, options]) => options?.method === "POST")![1].body).unit).toBe(
     "calendar_days",
   );
   await user.click(screen.getByText("Valores por corte y trazabilidad"));

@@ -1,7 +1,9 @@
 import io
 import json
 import sqlite3
+from copy import deepcopy
 from datetime import UTC, date, datetime, timedelta
+from uuid import NAMESPACE_URL, uuid5
 
 import numpy as np
 import pytest
@@ -38,6 +40,144 @@ def settings_body(**overrides):
     return dict(
         method="bootstrap", training_records=31, replicas=200, seed=42, horizon=5, **overrides
     )
+
+
+@pytest.fixture
+def saved_history(projection_client):
+    client, db, _ = projection_client
+    originals = []
+    snapshots = []
+    for method in ("bootstrap", "monte_carlo", "arima"):
+        body = dict(settings={**settings_body(), "method": method}, horizons=[1, 5], folds=3)
+        response = client.post("/api/v1/validations/rolling", json=body)
+        assert response.status_code == 201, response.text
+        originals.append(response.json())
+        with db.connect() as connection:
+            snapshots.append(connection.execute(
+                "SELECT evaluation_snapshot_json FROM rolling_evaluations WHERE id=?",
+                (response.json()["id"],),
+            ).fetchone()[0])
+    entries = []
+    with db.connect() as connection:
+        connection.execute("DELETE FROM rolling_evaluations")
+        for index in range(63):
+            entry = deepcopy(originals[index % 3])
+            entry["id"] = str(uuid5(NAMESPACE_URL, f"synthetic-history-{index}"))
+            entry["created_at"] = (
+                datetime(2026, 1, 1, tzinfo=UTC) + timedelta(hours=index + 5)
+            ).isoformat()
+            if index == 0:  # Original schema did not require unit or volatility scale.
+                entry["request"].pop("unit")
+                entry["request"]["settings"].pop("volatility_scale")
+            connection.execute(
+                "INSERT INTO rolling_evaluations VALUES(?,?,?)",
+                (entry["id"], json.dumps(entry), snapshots[index % 3]),
+            )
+            entries.append(entry)
+    return client, db, entries
+
+
+def test_saved_history_empty_and_query_guards(settings):
+    with TestClient(create_app(settings)) as client:
+        assert client.get("/api/v1/validations/rolling").json() == dict(
+            items=[], total=0, page=1, page_size=20, pages=0
+        )
+        for query in ("page=0", "page_size=101", "horizon=0", "horizon=366", "method=bad",
+                      "unit=bad", "start=2026-02-01&end=2026-01-01", "unexpected=1",
+                      "q=" + "a" * 101):
+            assert client.get("/api/v1/validations/rolling?" + query).status_code == 422
+
+
+def test_saved_history_paginates_all_records_in_creation_order(saved_history):
+    client, _, entries = saved_history
+    collected = []
+    for page in range(1, 10):
+        response = client.get(f"/api/v1/validations/rolling?page={page}&page_size=7")
+        assert response.status_code == 200, response.text
+        result = response.json()
+        assert result["total"] == 63 and result["pages"] == 9
+        assert result["page"] == page and len(result["items"]) == 7
+        collected.extend(entry["id"] for entry in result["items"])
+        assert all(entry["evaluated_folds"] == 3 for entry in result["items"])
+        assert all("cases" not in entry and "summaries" not in entry for entry in result["items"])
+    assert collected == [entry["id"] for entry in reversed(entries)]
+    assert len(set(collected)) == 63
+    old = client.get("/api/v1/validations/rolling?page=63&page_size=1").json()["items"][0]
+    assert old["request"]["unit"] == "transitions"
+    assert old["request"]["settings"]["volatility_scale"] == 1
+    assert client.get("/api/v1/validations/rolling?page=100").json()["items"] == []
+
+
+def test_saved_history_combines_literal_search_and_metadata_filters(saved_history):
+    client, _, entries = saved_history
+    query = "method=arima&horizon=5&unit=transitions&start=2026-01-02&end=2026-01-02&q=42"
+    result = client.get("/api/v1/validations/rolling?" + query).json()
+    expected = [entry for i, entry in enumerate(entries) if i % 3 == 2 and 24 <= i < 48]
+    assert result["total"] == len(expected) == 8
+    assert [r["id"] for r in result["items"]] == [r["id"] for r in reversed(expected)]
+    assert client.get("/api/v1/validations/rolling?q=MoNtEcArLo").json()["total"] == 21
+    for params in ({"q": "%"}, {"q": "_"}, {"q": "' OR 1=1 --"}, {"horizon": 15},
+                   {"unit": "calendar_days"}):
+        assert client.get("/api/v1/validations/rolling", params=params).json()["total"] == 0
+
+
+def test_saved_history_colombia_dates_and_ties_are_stable(saved_history):
+    client, db, entries = saved_history
+    with db.connect() as connection:
+        connection.execute("DELETE FROM rolling_evaluations")
+        for entry, created_at in zip(entries, [
+            "2026-01-02T04:59:59+00:00", "2026-01-02T00:00:00-05:00",
+            "2026-01-02T05:00:00Z", "2026-01-02T00:00:00",
+        ], strict=False):
+            entry = {**entry, "created_at": created_at}
+            connection.execute("INSERT INTO rolling_evaluations VALUES(?,?,?)",
+                               (entry["id"], json.dumps(entry), "[]"))
+    result = client.get("/api/v1/validations/rolling?start=2026-01-02&end=2026-01-02").json()
+    assert result["total"] == 3
+    # Naive legacy timestamp is interpreted locally for ordering as well as filtering.
+    assert [item["id"] for item in result["items"]] == [e["id"] for e in entries[1:4][::-1]]
+
+
+def test_saved_history_open_and_excel_use_original_results_without_simulation(saved_history,
+                                                                          monkeypatch):
+    client, db, entries = saved_history
+    original = entries[-1]
+    monkeypatch.setattr("app.main.create_rolling", lambda *_: pytest.fail("Unexpected simulation"))
+    with db.connect() as connection:
+        before = connection.execute("SELECT * FROM rolling_evaluations ORDER BY rowid").fetchall()
+        connection.execute("DELETE FROM records")
+    with client.app.state.simulation_lock:
+        assert client.get("/api/v1/validations/rolling").status_code == 200
+        recovered = client.get(f"/api/v1/validations/rolling/{original['id']}")
+        assert recovered.status_code == 200 and recovered.json() == original
+        exported = client.get(f"/api/v1/exports/rolling/{original['id']}")
+    assert exported.status_code == 200
+    book = load_workbook(io.BytesIO(exported.content), data_only=True)
+    metadata = dict(book["Metadatos"].iter_rows(min_row=2, values_only=True))
+    assert metadata["Evaluación"] == original["id"]
+    rows = list(book["Errores por horizonte"].iter_rows(min_row=2, values_only=True))
+    assert [row[2] for row in rows] == pytest.approx(
+        [s["model"]["mae"] for s in original["summaries"]]
+    )
+    assert [row[4] for row in rows] == pytest.approx(
+        [s["model"]["rmse"] for s in original["summaries"]]
+    )
+    book.close()
+    with db.connect() as connection:
+        after = connection.execute("SELECT * FROM rolling_evaluations ORDER BY rowid").fetchall()
+    assert [tuple(row) for row in after] == [tuple(row) for row in before]
+
+
+def test_reused_configuration_creates_new_evaluation_without_altering_original(projection_client):
+    client, _, _ = projection_client
+    body = dict(settings=settings_body(), horizons=[1, 5], folds=3)
+    original = client.post("/api/v1/validations/rolling", json=body).json()
+    again = client.post("/api/v1/validations/rolling", json=original["request"])
+    assert again.status_code == 201, again.text
+    assert again.json()["id"] != original["id"]
+    assert again.json()["summaries"] == original["summaries"]
+    assert client.get(f"/api/v1/validations/rolling/{original['id']}").json() == original
+    assert client.get("/api/v1/validations/rolling").json()["total"] == 2
 
 
 @pytest.mark.parametrize("method", ["bootstrap", "monte_carlo"])

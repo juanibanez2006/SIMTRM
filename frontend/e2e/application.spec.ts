@@ -214,15 +214,11 @@ test("validación por fechas: datos posteriores, errores y recuperación", async
       name: "Errores por horizonte frente a persistencia",
     }),
   ).toBeVisible();
-  await page
-    .getByText("Recuperar evaluación guardada", { exact: true })
-    .click();
-  await page
-    .getByLabel("Identificador de evaluación", { exact: true })
-    .fill(result.id);
-  await page
-    .getByRole("button", { name: "Consultar evaluación", exact: true })
-    .click();
+  const recovered = page.waitForResponse(r => r.url().endsWith(`/validations/rolling/${result.id}`));
+  await page.getByRole("region", {name: "Mis evaluaciones", exact: true})
+    .getByRole("button", {name: "Ver resultados abiertos", exact: true}).click();
+  expect(await (await recovered).json()).toEqual(result);
+  await expect(page.locator(".evaluation-output")).toBeFocused();
   await accessible(page);
 });
 

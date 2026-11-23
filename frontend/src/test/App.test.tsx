@@ -19,6 +19,7 @@ vi.mock("../PlotChart", () => ({
 let fetchMock: ReturnType<typeof vi.fn>;
 beforeEach(() => {
   fetchMock = vi.fn(async (path: string) => {
+    if (path.includes("/validations/rolling?")) return Response.json({items: [], total: 0, page: 1, page_size: 5, pages: 0});
     if (path.includes("/history"))
       return Response.json({
         items: [latest.record],

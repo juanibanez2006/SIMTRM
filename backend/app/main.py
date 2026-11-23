@@ -30,7 +30,15 @@ from app.exports import (
 )
 from app.projection import create_projection, create_rolling
 from app.projection_exports import export_projection, export_scenarios
-from app.queries import data_status, latest, record_out, run_out, series, where_filter
+from app.queries import (
+    data_status,
+    latest,
+    record_out,
+    rolling_history,
+    run_out,
+    series,
+    where_filter,
+)
 from app.records import DataError
 from app.schemas import (
     BacktestOut,
@@ -42,6 +50,8 @@ from app.schemas import (
     LatestOut,
     ProjectionOut,
     ProjectionRequest,
+    RollingHistoryOut,
+    RollingHistoryQuery,
     RollingOut,
     RollingRequest,
     ScenarioExportRequest,
@@ -319,6 +329,10 @@ def create_app(settings: Settings | None = None, source_factory=None) -> FastAPI
     @app.post("/api/v1/validations/rolling", response_model=RollingOut, status_code=201)
     def rolling(body: RollingRequest):
         return execute_simulation(lambda: create_rolling(db, body))
+
+    @app.get("/api/v1/validations/rolling", response_model=RollingHistoryOut)
+    def saved_evaluations(query: Annotated[RollingHistoryQuery, Query()]):
+        return rolling_history(db, query)
 
     @app.get("/api/v1/validations/rolling/{id}", response_model=RollingOut)
     def rolling_result(id: UUID):

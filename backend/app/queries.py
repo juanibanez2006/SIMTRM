@@ -6,8 +6,88 @@ from decimal import Decimal
 from app.config import CATALOG_URL, SOURCE_NAME, Settings, now_bogota
 from app.db import Database
 from app.records import digest
-from app.schemas import HistoryFilter
+from app.schemas import HistoryFilter, RollingHistoryQuery
 from app.sync import automatic_next_check
+
+
+def rolling_history(db: Database, query: RollingHistoryQuery) -> dict:
+    # Project metadata only: matrices and full results stay in their original tables.
+    metadata = """
+        SELECT rowid AS position, id, result_json,
+               json_extract(result_json, '$.created_at') AS created_at,
+               json_extract(result_json, '$.request') AS request_json,
+               json_extract(result_json, '$.request.settings.method') AS method,
+               coalesce(json_extract(result_json, '$.request.unit'), 'transitions') AS unit
+        FROM rolling_evaluations
+    """
+    # Explicit offsets are normalized to Colombia. Older naive timestamps were local.
+    has_offset = """length(created_at) > 19 AND
+        (substr(created_at, -1) = 'Z' OR instr(substr(created_at, 20), '+') > 0
+         OR instr(substr(created_at, 20), '-') > 0)"""
+    local_day = f"""CASE WHEN {has_offset} THEN date(created_at, '-5 hours')
+                    ELSE substr(created_at, 1, 10) END"""
+    created_order = f"""CASE WHEN {has_offset} THEN julianday(created_at)
+                        ELSE julianday(created_at, '+5 hours') END"""
+    clauses, params = [], []
+    for value, expression in (
+        (str(query.start) if query.start else None, f"({local_day}) >= ?"),
+        (str(query.end) if query.end else None, f"({local_day}) <= ?"),
+        (query.method, "method = ?"),
+        (query.unit, "unit = ?"),
+    ):
+        if value is not None:
+            clauses.append(expression)
+            params.append(value)
+    if query.horizon is not None:
+        clauses.append("""EXISTS (SELECT 1 FROM json_each(request_json, '$.horizons')
+                                 WHERE value = ?)""")
+        params.append(query.horizon)
+    if query.q.strip():
+        # Literal, case-insensitive search: % and _ are not wildcard operators.
+        clauses.append(f"""instr(lower(
+            coalesce(({local_day}), '') || ' ' ||
+            CASE method WHEN 'monte_carlo' THEN 'Montecarlo'
+                        WHEN 'arima' THEN 'ARIMA(1,1,0)' ELSE 'Bootstrap' END || ' ' ||
+            coalesce(json_extract(request_json, '$.horizons'), '') || ' ' ||
+            coalesce(json_extract(request_json, '$.settings.training_records'), '') || ' ' ||
+            coalesce(json_extract(request_json, '$.settings.replicas'), '') || ' ' ||
+            coalesce(json_extract(request_json, '$.settings.seed'), '') || ' ' ||
+            coalesce(json_extract(request_json, '$.settings.volatility_scale'), 1) || ' ' ||
+            coalesce(json_extract(request_json, '$.last_cutoff'), '') || ' ' ||
+            CASE unit WHEN 'calendar_days' THEN 'días calendario' ELSE 'transiciones' END
+            ), lower(?)) > 0""")
+        params.append(query.q.strip())
+    filtered = "WITH metadata AS (" + metadata + ") SELECT * FROM metadata"
+    if clauses:
+        filtered += " WHERE " + " AND ".join(clauses)
+    with db.connect() as connection:
+        connection.execute("BEGIN")  # Count and page share one read snapshot during saves.
+        total = connection.execute("SELECT count(*) FROM (" + filtered + ")", params).fetchone()[0]
+        rows = connection.execute(
+            "SELECT id, created_at, request_json, "
+            "coalesce(json_extract(result_json, '$.skipped'), 0) AS skipped, "
+            "(SELECT count(DISTINCT json_extract(value, '$.cutoff')) "
+            " FROM json_each(result_json, '$.cases')) AS evaluated_folds "
+            "FROM (" + filtered + f") ORDER BY ({created_order}) DESC, position DESC "
+            "LIMIT ? OFFSET ?",
+            [*params, query.page_size, (query.page - 1) * query.page_size],
+        ).fetchall()
+    return dict(
+        items=[
+            dict(
+                id=row["id"],
+                created_at=row["created_at"],
+                request=json.loads(row["request_json"]),
+                evaluated_folds=row["evaluated_folds"],
+                skipped=row["skipped"],
+            )
+            for row in rows
+        ],
+        total=total,
+        page=query.page,
+        page_size=query.page_size,
+        pages=(total + query.page_size - 1) // query.page_size,
+    )
 
 
 def record_out(row) -> dict | None:
