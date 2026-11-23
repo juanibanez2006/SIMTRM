@@ -1,8 +1,8 @@
-import type { Data, Layout } from "plotly.js";
+import type { PlotData, Layout } from "plotly.js";
 import type { Projection } from "./types";
 
 export function projectionPlot(result: Projection): {
-  data: Data[];
+  data: Partial<PlotData>[];
   layout: Partial<Layout>;
 } {
   const hx: (string | null)[] = [],
@@ -46,7 +46,7 @@ export function projectionPlot(result: Projection): {
       high.push(row.p95);
     }
   });
-  const forecast = (name: string, y: number[], extra: Partial<Data>): Data =>
+  const forecast = (name: string, y: number[], extra: Partial<PlotData>): Partial<PlotData> =>
     ({
       type: "scatter",
       mode: "lines",
@@ -56,7 +56,7 @@ export function projectionPlot(result: Projection): {
       connectgaps: false,
       hovertemplate: `%{x|%d/%m/%Y}<br>${name}: %{y:,.2f} COP/USD<extra>Estimación del modelo</extra>`,
       ...extra,
-    }) as Data;
+    });
   return {
     data: [
       {

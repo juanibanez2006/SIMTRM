@@ -94,10 +94,11 @@ export function simulationPlot(
         ...layout,
         showlegend: false,
         bargap: 0,
-        xaxis: { title: { text: "Precio terminal · COP/USD" } },
+        xaxis: { title: { text: "Precio terminal · COP/USD" }, tickformat: ",.2f" },
         yaxis: {
           ...layout.yaxis,
           title: { text: "Frecuencia de réplicas" },
+          tickformat: ",d",
           rangemode: "tozero",
         },
       },

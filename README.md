@@ -59,7 +59,7 @@ Las fechas son celdas de fecha y los importes son numéricos. Los textos se escr
 
 El gráfico es una versión nativa XY con líneas rectas: histórico, mediana, P5 y P95. Sus series están vinculadas a celdas internas y conservan una caché numérica para facilitar la visualización. No se intenta trasladar la interactividad de Plotly. La vista inicial presenta las últimas 60 vigencias y la proyección; el histórico completo permanece en su hoja. Los huecos interrumpen la línea.
 
-La revisión de entrega incluyó apertura normal, cálculo, renderizado de gráficos, guardado y reapertura en **Microsoft Excel 16**, además de validación de XML, referencias, tipos y cifras con openpyxl. LibreOffice no estaba instalado y no se presenta como comprobado. Las comprobaciones no garantizan compatibilidad con todas las versiones de aplicaciones de terceros.
+La revisión del **23 de noviembre de 2026** comprobó 28 libros: 14 generados con distintos modelos, ventanas, escenarios y volúmenes, incluida una matriz con más de un millón de valores, y 14 descargados desde Chrome y Edge. Se validaron XML, referencias, fechas, números y cifras con openpyxl; después se abrieron, recalcularon, guardaron y reabrieron en **Microsoft Excel 16**, sin reparación ni pérdida de gráficos. Los gráficos también se renderizaron para inspección visual. LibreOffice no está instalado y no se presenta como comprobado. Estas comprobaciones no garantizan compatibilidad con todas las versiones de aplicaciones de terceros.
 
 ## Instalación y ejecución local
 
@@ -127,7 +127,9 @@ npm.cmd --prefix frontend run build
 npm.cmd --prefix frontend run test:e2e
 ```
 
-Las pruebas de navegador requieren Chrome y Edge instalados y un histórico oficial actualizado. Inician servicios aislados y trabajan sobre una copia SQLite, sin modificar los experimentos del usuario. Comprueban navegación, filtros, simulaciones, reproducción, descargas, controles de gráficos, accesibilidad y anchos de 320 a 1280 píxeles. GitHub Actions ejecuta las pruebas sin red del motor y las verificaciones de código y compilación; la revisión con Excel de escritorio se ejecuta localmente en Windows.
+Las pruebas de navegador requieren Chrome y Edge instalados y un histórico oficial actualizado. Inician servicios aislados y trabajan sobre una copia SQLite, sin modificar los experimentos del usuario. Comprueban navegación, filtros, simulaciones, reproducción, descargas, errores de ejecución, controles de gráficos, accesibilidad y anchos de 320 a 1280 píxeles. Las descargas se conservan en `frontend/test-results/` para poder reabrirlas y comprobarlas; esa carpeta está excluida de Git y de ESLint. GitHub Actions ejecuta las pruebas sin red del motor y las verificaciones de código y compilación; la revisión con Excel de escritorio se ejecuta localmente en Windows.
+
+La comprobación local incluye 237 pruebas del backend, 42 de componentes y 20 recorridos en Chrome y Edge. Los modelos se contrastan con momentos teóricos de sus distribuciones y probabilidades analíticas cuando corresponde. La revisión con datos oficiales ejecutó proyecciones de 1, 7, 30, 90, 180 y 365 días y evaluaciones retrospectivas de los tres métodos con cortes limitados a 2015, 2020 y 2025. Los errores y la cobertura se recalcularon de forma independiente: hubo periodos en los que persistencia obtuvo menor error, especialmente a un año. La cobertura observada tampoco coincide necesariamente con el 90 % nominal. Estos resultados respaldan el uso como simulador de escenarios, sin prometer precisión de mercado.
 
 Para comprobar un libro descargado con Excel instalado, sin modificar el original:
 

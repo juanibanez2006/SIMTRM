@@ -4,10 +4,17 @@ import type { Projection, RollingEvaluation, Simulation } from "../src/types";
 import { money } from "../src/format";
 import { afterDays } from "../src/projectionSettings";
 
+const runtimeErrors = new WeakMap<Page, string[]>();
 test.beforeEach(async ({ page }) => {
+  const errors: string[] = [];
+  runtimeErrors.set(page, errors);
+  page.on("pageerror", error => errors.push(error.message));
   await page.route(/^https?:\/\/(?!127\.0\.0\.1[:/])/, (route) =>
     route.abort(),
   );
+});
+test.afterEach(async ({ page }) => {
+  expect(runtimeErrors.get(page)).toEqual([]);
 });
 async function run(page: Page, target?: string) {
   if (target)
@@ -66,6 +73,7 @@ async function xlsx(page: Page, name: string) {
   const download = await pending;
   expect(download.suggestedFilename()).toMatch(/\.xlsx$/);
   expect(await download.failure()).toBeNull();
+  await download.saveAs(test.info().outputPath(`${name}-${download.suggestedFilename()}`));
 }
 
 test("fecha futura, ancla oficial, tabla, gráfico, Excel y reproducción", async ({
@@ -396,6 +404,12 @@ test("ARIMA, periodo histórico, probabilidades y comparación exportable", asyn
   expect(second.upper - second.lower).toBeGreaterThan(first.upper - first.lower);
   await page.getByRole("button", {name: "Añadir a comparación", exact: true}).click();
   await expect(page.getByRole("region", {name: "Escenarios comparados"}).getByRole("row")).toHaveCount(3);
+  const comparison = page.getByRole("group", {name: "Comparación de medianas por fecha", exact: true});
+  await expect(comparison.locator(".main-svg").first()).toBeVisible();
+  const endpoints = await comparison.evaluate(element =>
+    (element as unknown as {data: {x: string[]; y: number[]}[]}).data.map(trace =>
+      ({date: trace.x.at(-1), value: trace.y.at(-1)})));
+  expect(endpoints).toEqual([first, second].map(p => ({date: p.target_date, value: p.estimate})));
   await xlsx(page, "Excel de la comparación");
   await page.getByLabel("Incluir trayectorias en Excel", {exact: true}).check();
   await xlsx(page, "Descargar Excel");

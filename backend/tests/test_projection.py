@@ -143,6 +143,7 @@ def test_rolling_metrics_and_disjoint_evaluation_windows(projection_client):
     exported = client.get("/api/v1/exports/rolling/" + result["id"])
     assert exported.status_code == 200
     workbook = load_workbook(io.BytesIO(exported.content), read_only=True, data_only=True)
+    assert workbook["Errores por horizonte"]["A1"].value == "Horizonte (transiciones)"
     assert len(list(workbook["Valores por corte"].rows)) == 13
     assert len(list(workbook["Entrenamiento"].rows)) == 12 * 31 + 1
     assert len(list(workbook["Evaluacion"].rows)) == 4 * (1 + 5 + 10) + 1

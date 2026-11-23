@@ -558,9 +558,8 @@ export default function ProjectionPage({
         <PlotChart label="Comparación de medianas por fecha" temporal
           viewKey={comparisons.map(p => p.id).join(':')}
           fallback="Consulte la tabla comparativa."
-          data={comparisons.map((p, i) => ({type: 'scatter', mode: 'lines',
+          data={comparisons.map((p, i) => ({...projectionPlot(p).data[3],
             name: `${i + 1}. ${methodNames[p.request.method]} · σ × ${p.request.volatility_scale ?? 1}`,
-            x: p.points?.map(v => v.date), y: p.points?.map(v => v.median),
             line: {shape: 'hv'}, hovertemplate: '%{x|%d/%m/%Y}<br>%{y:,.2f} COP/USD<extra>%{fullData.name}</extra>'}))}
           layout={{height: 340, margin: {l: 75, r: 20, t: 55, b: 55},
             legend: {orientation: 'h', y: 1.2}, xaxis: {type: 'date'}, yaxis: {title: {text: 'Mediana COP/USD'}}}} />

@@ -650,7 +650,9 @@ def export_rolling(db: Database, id: str) -> bytes | None:
     book.table(
         "Errores por horizonte",
         [
-            "Horizonte (vigencias)",
+            "Horizonte (días calendario)"
+            if result.request.unit == "calendar_days"
+            else "Horizonte (transiciones)",
             "Cortes",
             "MAE modelo",
             "MAE persistencia",

@@ -31,6 +31,7 @@ def table(sheet, name, headers, rows, formats=None, widths=None, start=1):
         cell = sheet.cell(start, col, header)
         cell.font = Font(name="Calibri", bold=True, color="FFFFFF")
         cell.fill = PatternFill("solid", fgColor=BLUE)
+        cell.alignment = Alignment(vertical="center", wrap_text=True)
         sheet.column_dimensions[get_column_letter(col)].width = (widths or {}).get(col, 19)
     sheet.row_dimensions[start].height = 34
     for index, row in enumerate(rows, start + 1):
@@ -116,6 +117,8 @@ def export_projection(db: Database, id: str, include_paths: bool = False) -> byt
     for row in range(5, 10):
         summary.cell(row, 2).number_format = MONEY
     summary["B10"].number_format = PERCENT
+    for row in (22, 23, 24):
+        summary.cell(row, 2).number_format = MONEY
     stats = book.create_sheet("Estadísticos")
     terminal = experiment.methods[0]
     stats_rows = [

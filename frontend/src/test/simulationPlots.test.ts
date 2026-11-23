@@ -23,13 +23,16 @@ it("distingue las réplicas de las bandas y de la media por paso", () => {
 });
 
 it("el histograma terminal conserva todas las réplicas, no solo las dibujadas", () => {
-  const trace = simulationPlot(experiment, result, "terminal").data[0] as {
+  const chart = simulationPlot(experiment, result, "terminal");
+  const trace = chart.data[0] as {
     y: number[];
   };
   expect(trace.y.reduce((sum, value) => sum + value, 0)).toBe(
     result.total_paths,
   );
   expect(result.displayed_paths).toBeLessThan(result.total_paths);
+  expect(chart.layout.yaxis?.tickformat).toBe(",d");
+  expect(chart.layout.xaxis?.tickformat).toBe(",.2f");
 });
 
 it("representa el histórico con fechas reales y separa huecos de cobertura", () => {

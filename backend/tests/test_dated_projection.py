@@ -255,6 +255,11 @@ def test_calendar_validation_recalibrates_without_future_information(dated):
     second = client.post("/api/v1/validations/rolling", json=payload).json()
     assert [c["predicted"] for c in first["cases"]] == [c["predicted"] for c in second["cases"]]
     assert first["cases"][-1]["actual"] != second["cases"][-1]["actual"]
+    workbook = load_workbook(
+        io.BytesIO(client.get(f"/api/v1/exports/rolling/{first['id']}").content)
+    )
+    assert workbook["Errores por horizonte"]["A1"].value == "Horizonte (días calendario)"
+    workbook.close()
 
 
 def test_insufficient_history_stale_data_and_invalid_dates(dated, monkeypatch):
@@ -398,6 +403,10 @@ def test_selected_history_probabilities_and_excel_match_all_saved_replicas(dated
     indices = [p.idx for p in chart_history.pt]
     assert any(b - a > 1 for a, b in zip(indices, indices[1:], strict=False))
     assert book["Trayectorias"].max_row == payload["replicas"] + 1
+    summary = dict(book["Resumen"].iter_rows(min_row=2, values_only=True))
+    assert summary["Entrenamiento desde"] == datetime.fromisoformat(payload["training_start"])
+    assert summary["Entrenamiento hasta"] == datetime.fromisoformat(payload["training_end"])
+    assert book["Proyección"]["A1"].alignment.wrap_text
     np.testing.assert_allclose(
         [[c.value for c in row[1:]] for row in book["Trayectorias"].iter_rows(min_row=2)], paths
     )
@@ -430,6 +439,9 @@ def test_scenario_comparison_export_uses_immutable_results(dated):
     assert [r[0] for r in rows] == [r["id"] for r in results]
     assert [r[5] for r in rows] == pytest.approx([r["estimate"] for r in results])
     assert [r[4] for r in rows] == [0.5, 1.5]
+    for row, result in zip(rows, results, strict=True):
+        assert row[10] == datetime.fromisoformat(result["experiment"]["training"]["first_date"])
+        assert row[11] == datetime.fromisoformat(result["experiment"]["training"]["last_date"])
     book.close()
 
 

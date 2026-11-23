@@ -6,7 +6,7 @@ param(
 
 $ErrorActionPreference = 'Stop'
 if ($PSCmdlet.ParameterSetName -eq 'Manifest') {
-    $manifest = Get-Content -LiteralPath $ManifestPath -Raw | ConvertFrom-Json
+    $manifest = Get-Content -LiteralPath $ManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $sourceDirectory = Split-Path -Parent (Resolve-Path -LiteralPath $ManifestPath).Path
     foreach ($entry in $manifest) {
         $entry | Add-Member -NotePropertyName path -NotePropertyValue (Join-Path $sourceDirectory $entry.file)
