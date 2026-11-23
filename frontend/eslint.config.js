@@ -5,7 +5,7 @@ import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 
 export default tseslint.config(
-  { ignores: ["dist", "coverage", "test-results", "playwright-report"] },
+  { ignores: ["dist", "coverage", "test-results", "test-results-public", "playwright-report"] },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {

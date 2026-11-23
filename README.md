@@ -119,6 +119,8 @@ La ejecución con Vite y los scripts de PowerShell sigue siendo para **uso local
 
 ## Producción en Railway
 
+Acceso público: **[SIMTRM](https://simtrm-production.up.railway.app/)**. El profesor puede utilizar la interfaz, los modelos y las descargas desde el navegador, sin instalar programas. El alojamiento es independiente del equipo local. La disponibilidad depende de mantener activos el servicio y el plan de Railway; la cuenta está actualmente en periodo de prueba.
+
 El `Dockerfile` compila React con Node.js 24 y copia únicamente el resultado a una imagen Python 3.13. FastAPI sirve la interfaz y `/api/v1` desde el mismo dominio; Vite no se ejecuta en producción. `scripts/start-production.py` inicia Uvicorn en `0.0.0.0:$PORT`, con un proceso, y en Railway cambia al usuario sin privilegios después de preparar los permisos del volumen. El servicio utiliza una réplica, 1 vCPU, un límite de 1 GB de memoria, comprobación `/api/v1/health`, reinicio ante fallos y suspensión por inactividad desactivada.
 
 SQLite se almacena en **`/data/simtrm.sqlite3`**, dentro del volumen persistente de 500 MB del servicio. La imagen no contiene el histórico ni los experimentos locales. Al iniciar, se comprueba que Railway haya montado el volumen y que la base esté dentro de él; un error impide arrancar sobre almacenamiento efímero. Las matrices, instantáneas y permisos de los experimentos permanecen en esa base durante reinicios y despliegues. La primera actualización descarga los datos oficiales y las siguientes se comprueban cada hora. Un fallo conserva los datos válidos anteriores; no se sustituyen por ejemplos.
@@ -142,6 +144,8 @@ El acceso de evaluación no requiere cuentas. Una cookie firmada, `Secure`, `Htt
 
 La actualización manual exige `ADMIN_TOKEN` y no se ofrece en la interfaz pública. La documentación interactiva de la API se desactiva, se restringen dominio y origen, se limitan cuerpos a 64 KiB y se envían cabeceras de seguridad. Los datos oficiales siguen siendo de consulta pública. Los cálculos y las exportaciones comparten un bloqueo de memoria: se ejecuta un trabajo pesado a la vez. Se permiten 60 trabajos por hora y navegador, con un máximo global de 120, y 120 consultas por minuto y navegador. Los límites devuelven `429` con tiempo de reintento; no alteran las fórmulas ni los modelos. Con menos de 128 MiB libres se bloquean nuevos cálculos, conservando la consulta y descarga de resultados existentes. Conviene vigilar el espacio y configurar las copias de seguridad del volumen desde Railway.
 
+El servicio del proyecto existente `SIMTRM`, entorno `production`, está conectado a `juanibanez2006/SIMTRM`, rama `main`. Los despliegues automáticos esperan el resultado satisfactorio de GitHub Actions. Configure recursos, dominio, volumen y variables en Railway; no se necesita un archivo `railway.json`. Con una réplica y SQLite, un reinicio o despliegue puede interrumpir brevemente el acceso.
+
 ## Tecnologías y comprobaciones
 
 React 19, TypeScript, Vite 7, Tailwind CSS 4 y Plotly con carga diferida; FastAPI, Pydantic, NumPy, SciPy y SQLite; openpyxl para exportaciones. No se requiere Excel instalado para generar libros. Excel solo se utiliza en la comprobación nativa opcional.
@@ -158,7 +162,15 @@ npm.cmd --prefix frontend run test:e2e
 
 Las pruebas de navegador requieren Chrome y Edge instalados y un histórico oficial actualizado. Inician servicios aislados y trabajan sobre una copia SQLite, sin modificar los experimentos del usuario. Comprueban navegación, filtros, simulaciones, reproducción, descargas, errores de ejecución, controles de gráficos, accesibilidad y anchos de 320 a 1280 píxeles. Las descargas se conservan en `frontend/test-results/` para poder reabrirlas y comprobarlas; esa carpeta está excluida de Git y de ESLint. GitHub Actions ejecuta las pruebas sin red del motor y las verificaciones de código y compilación; la revisión con Excel de escritorio se ejecuta localmente en Windows.
 
-La comprobación local incluye 243 pruebas del backend, 48 de componentes y 24 recorridos en Chrome y Edge. Los modelos se contrastan con momentos teóricos de sus distribuciones y probabilidades analíticas cuando corresponde. La revisión con datos oficiales ejecutó proyecciones de 1, 7, 30, 90, 180 y 365 días y evaluaciones retrospectivas de los tres métodos con cortes limitados a 2015, 2020 y 2025. Los errores y la cobertura se recalcularon de forma independiente: hubo periodos en los que persistencia obtuvo menor error, especialmente a un año. La cobertura observada tampoco coincide necesariamente con el 90 % nominal. Estos resultados respaldan el uso como simulador de escenarios, sin prometer precisión de mercado.
+La comprobación local incluye 253 pruebas del backend, 48 de componentes y 24 recorridos en Chrome y Edge. Los modelos se contrastan con momentos teóricos de sus distribuciones y probabilidades analíticas cuando corresponde. La revisión con datos oficiales ejecutó proyecciones de 1, 7, 30, 90, 180 y 365 días y evaluaciones retrospectivas de los tres métodos con cortes limitados a 2015, 2020 y 2025. Los errores y la cobertura se recalcularon de forma independiente: hubo periodos en los que persistencia obtuvo menor error, especialmente a un año. La cobertura observada tampoco coincide necesariamente con el 90 % nominal. Estos resultados respaldan el uso como simulador de escenarios, sin prometer precisión de mercado.
+
+Para comprobar el dominio publicado con solicitudes reales, sin iniciar servidores locales:
+
+```powershell
+npm.cmd --prefix frontend run test:production
+```
+
+Estos seis recorridos en Chrome y Edge crean análisis en producción y consumen la cuota de trabajos. Comprueban los tres modelos, parámetros, probabilidades, escenarios, recuperación, privacidad entre navegadores, filtros, accesibilidad, vista móvil y descargas. Los archivos y las sesiones de prueba quedan en `frontend/test-results-public/`, excluida de Git; no comparta los archivos de sesión. Se reabrieron 12 descargas públicas en Excel 16, con cálculo, gráficos nativos, guardado y reapertura. La persistencia se comprueba adicionalmente recuperando los resultados originales tras reiniciar o desplegar el servicio, con la misma sesión y sin recalcularlos.
 
 Para comprobar un libro descargado con Excel instalado, sin modificar el original:
 

@@ -14,10 +14,13 @@
 !frontend/vite.config.ts
 !frontend/tsconfig.json
 !frontend/playwright.config.ts
+!frontend/playwright.production.config.ts
 !frontend/src/
 !frontend/src/**
 !frontend/public/
 !frontend/public/**
 !frontend/e2e/
 !frontend/e2e/*.ts
+!frontend/e2e-public/
+!frontend/e2e-public/*.ts
 **/__pycache__

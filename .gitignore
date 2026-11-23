@@ -35,4 +35,5 @@ frontend/playwright-report/
 .vscode/
 .DS_Store
 .railway/
+frontend/test-results-public/
 Thumbs.db
