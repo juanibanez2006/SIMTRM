@@ -1,6 +1,7 @@
 """Single-process production entry point; durable state must live on the mounted volume."""
 
 import os
+import shutil
 import sys
 from pathlib import Path
 
@@ -26,6 +27,12 @@ def main():
             os.setgroups([])
             os.setgid(10001)
             os.setuid(10001)
+        storage = shutil.disk_usage(volume)
+        print(
+            f"Persistent storage: total={storage.total} free={storage.free} "
+            f"database={database.stat().st_size if database.exists() else 0}",
+            flush=True,
+        )
     uvicorn.run(
         "app.main:app", host="0.0.0.0", port=int(os.environ.get("PORT", "8080")),
         workers=1, proxy_headers=True, forwarded_allow_ips="*", limit_concurrency=40,
