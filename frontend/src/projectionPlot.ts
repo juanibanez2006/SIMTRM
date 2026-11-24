@@ -1,7 +1,10 @@
 import type { PlotData, Layout } from "plotly.js";
 import type { Projection } from "./types";
+import { methodNames } from "./projectionSettings";
 
-export function projectionPlot(result: Projection): {
+export type ProjectionView = "paths" | "median" | "mean";
+
+export function projectionPlot(result: Projection, view: ProjectionView = "median"): {
   data: Partial<PlotData>[];
   layout: Partial<Layout>;
 } {
@@ -27,11 +30,13 @@ export function projectionPlot(result: Projection): {
   );
   const points = result.points ?? [];
   const x: string[] = [],
+    steps: number[] = [],
     median: number[] = [],
     low: number[] = [],
     high: number[] = [];
   points.forEach((row) => {
     x.push(row.date);
+    steps.push(row.step);
     median.push(row.median);
     low.push(row.p5);
     high.push(row.p95);
@@ -41,6 +46,7 @@ export function projectionPlot(result: Projection): {
         : result.target_date!;
     if (end > row.date) {
       x.push(end);
+      steps.push(row.step);
       median.push(row.median);
       low.push(row.p5);
       high.push(row.p95);
@@ -57,6 +63,9 @@ export function projectionPlot(result: Projection): {
       hovertemplate: `%{x|%d/%m/%Y}<br>${name}: %{y:,.2f} COP/USD<extra>Estimación del modelo</extra>`,
       ...extra,
     });
+  const model = result.experiment.methods[0];
+  const sample = view === "paths" ? model.paths.slice(0, 5) : [];
+  const mean = view === "mean" ? steps.map(step => model.bands[step].mean) : median;
   return {
     data: [
       {
@@ -79,9 +88,21 @@ export function projectionPlot(result: Projection): {
         fill: "tonexty",
         fillcolor: "rgba(188,95,22,.16)",
       }),
-      forecast("Mediana estimada", median, {
-        line: { color: "#bc5f16", width: 3, shape: "hv" },
+      forecast(view === "mean" ? "Promedio simple" : "Mediana estimada", mean, {
+        line: { color: "#bc5f16", width: view === "paths" ? 2 : 3, shape: "hv",
+          dash: view === "paths" ? "dot" : "solid" },
       }),
+      ...sample.map((path, index) => forecast(
+        `${sample.length} trayectorias · ${methodNames[model.method]}`,
+        steps.map(step => path[step]),
+        {
+          legendgroup: "sample-paths",
+          showlegend: index === 0,
+          line: { color: ["#167080", "#7963a0", "#397c52", "#a65f75", "#526b7a"][index],
+            width: 1.5, shape: "hv" },
+          hovertemplate: `%{x|%d/%m/%Y}<br>Réplica ${index + 1}: %{y:,.2f} COP/USD<extra>${methodNames[model.method]} · escenario simulado</extra>`,
+        },
+      )),
     ],
     layout: {
       height: 410,

@@ -6,7 +6,7 @@ import SimulationChart from "./SimulationChart";
 import ExportButton from "./ExportButton";
 import ValidationResults from "./ValidationResults";
 import SavedExperiments from "./SavedExperiments";
-import { projectionPlot } from "./projectionPlot";
+import { projectionPlot, type ProjectionView } from "./projectionPlot";
 import {
   afterDays,
   defaultProjection,
@@ -52,6 +52,7 @@ export default function ProjectionPage({
   const [period, setPeriod] = useState("window");
   const [comparisons, setComparisons] = useState<Projection[]>([]);
   const [includePaths, setIncludePaths] = useState(false);
+  const [graphView, setGraphView] = useState<ProjectionView>("paths");
   const result = saved?.result;
   const changed =
     result &&
@@ -113,8 +114,8 @@ export default function ProjectionPage({
     }
   }
   const plot = useMemo(
-    () => (result?.points?.length ? projectionPlot(result) : null),
-    [result],
+    () => (result?.points?.length ? projectionPlot(result, graphView) : null),
+    [result, graphView],
   );
   const model = result?.experiment.methods[0];
   const pathsFitWorkbook = !!result && result.request.replicas * (result.request.horizon + 1) <= 400000;
@@ -390,9 +391,20 @@ export default function ProjectionPage({
                 <div>
                   <h2>Histórico y proyección</h2>
                   <p>
-                    Azul: registros oficiales conocidos. Naranja y banda:
-                    mediana y percentiles del modelo.
+                    {graphView === "paths"
+                      ? "Trayectorias del método seleccionado; cada línea sigue una réplica calculada. La mediana punteada resume todos los escenarios."
+                      : graphView === "mean"
+                        ? "Promedio aritmético de todas las réplicas en cada fecha, con intervalo P5–P95. La tarjeta y la tabla conservan la mediana."
+                        : "Mediana de todas las réplicas e intervalo P5–P95. Una línea central suave puede resumir trayectorias muy variables."}
                   </p>
+                  <label>Vista de la proyección
+                    <select value={graphView} onChange={event => setGraphView(event.target.value as ProjectionView)}>
+                      <option value="paths">Trayectorias simuladas</option>
+                      <option value="median">Mediana e intervalo</option>
+                      <option value="mean">Promedio simple e intervalo</option>
+                    </select>
+                  </label>
+                  <p className="analysis-provenance">Las trayectorias son escenarios posibles, no cotizaciones futuras. Con la misma semilla se conservan los resultados.</p>
                 </div>
               </div>
               <PlotChart

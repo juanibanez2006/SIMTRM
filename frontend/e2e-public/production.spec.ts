@@ -42,6 +42,12 @@ async function run(page: Page, date: string) {
     return traces[3].y.at(-1);
   });
   expect(end).toBe(result.estimate);
+  const samples = await chart.evaluate(element => {
+    const data = (element as unknown as { data: { y: number[] }[] }).data;
+    return data.slice(4).map(trace => trace.y.at(-1));
+  });
+  expect(samples).toEqual(result.experiment.methods[0].paths.slice(0, 5).map(path => path.at(-1)));
+  expect(new Set(samples).size).toBeGreaterThan(1);
   await test.info().attach(`projection-${result.id}`, { body: JSON.stringify(result), contentType: "application/json" });
   return result;
 }
@@ -54,6 +60,15 @@ test("HTTPS: modelos reales, probabilidades, escenarios, Excel y privacidad", as
   const bootstrap = await run(page, afterDays(latest.today, 7));
   expect(bootstrap.request.method).toBe("bootstrap");
   await download(page, "Descargar Excel", "bootstrap.xlsx");
+  const view = page.getByLabel("Vista de la proyección", { exact: true });
+  await view.selectOption("mean");
+  const mean = bootstrap.experiment.methods[0].terminal_values.reduce((sum, value) => sum + value, 0) / bootstrap.request.replicas;
+  const center = () => page.locator(".projection-page .temporal-chart").first().evaluate(element =>
+    (element as unknown as { data: { y: number[] }[] }).data[3].y.at(-1));
+  await expect.poll(center).toBeCloseTo(mean, 8);
+  await view.selectOption("median");
+  await expect.poll(center).toBe(bootstrap.estimate);
+  await view.selectOption("paths");
 
   await page.getByLabel("Método de proyección", { exact: true }).selectOption("monte_carlo");
   const monte = await run(page, afterDays(latest.today, 90));
